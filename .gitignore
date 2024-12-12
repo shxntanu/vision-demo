@@ -1,0 +1,7 @@
+venv
+.env
+.env.local
+xcuserdata
+.DS_Store
+__pycache__
+agent/debug
