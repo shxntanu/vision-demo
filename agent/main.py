@@ -1,7 +1,7 @@
-from livekit.agents import JobContext, WorkerOptions, AutoSubscribe, cli
-from vision_assistant import VisionAssistant
-
 from dotenv import load_dotenv
+from livekit.agents import AutoSubscribe, JobContext, WorkerOptions, cli
+
+from vision_assistant import VisionAssistant
 
 load_dotenv()
 

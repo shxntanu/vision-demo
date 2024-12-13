@@ -1,7 +1,8 @@
 import os
 from datetime import datetime
 from typing import List
-from livekit.agents.llm import ChatMessage, ChatImage
+
+from livekit.agents.llm import ChatImage, ChatMessage
 
 
 def debug_chat_context(chat_context: List[ChatMessage]):
@@ -70,7 +71,7 @@ def debug_chat_context(chat_context: List[ChatMessage]):
             </div>
             <div class="content">
         """
-        
+
         content_list = msg.content if isinstance(msg.content, list) else [msg.content]
 
         for content in content_list:

@@ -1,15 +1,16 @@
+import base64
+import time
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional, Tuple
-import time
+from typing import List, Tuple
+
 from livekit import rtc
-from livekit.agents.utils import images
-import base64
 from livekit.agents.tokenize.basic import (
     SentenceTokenizer,
     WordTokenizer,
     hyphenate_word,
 )
+from livekit.agents.utils import images
 
 
 class EntryType(Enum):
@@ -41,6 +42,7 @@ FRAME_RATE_WINDOWS = [
 ]
 
 HYPHEN_SPEECH_RATE = 3.83  # hyphens per second
+
 
 class ConversationTimeline:
     def __init__(self):
@@ -150,6 +152,44 @@ class ConversationTimeline:
             )
             self._insert_entry_chronologically(entry)
 
+    def add_camera_frame(self, frame: rtc.VideoFrame):
+        ts = time.time()
+        if not self._should_add_frame():
+            return
+
+        frame_ref = self._encode_frame(frame)
+
+        entry = TimelineEntry(
+            entry_type=EntryType.CAMERA_FRAME, timestamp=ts, content=frame_ref
+        )
+        self._insert_entry_chronologically(entry)
+
+    def add_screenshare_frame(self, frame: rtc.VideoFrame):
+        ts = time.time()
+        if not self._should_add_frame():
+            return
+
+        frame_ref = self._encode_frame(frame)
+
+        entry = TimelineEntry(
+            entry_type=EntryType.SCREENSHARE_FRAME, timestamp=ts, content=frame_ref
+        )
+        self._insert_entry_chronologically(entry)
+
+    def add_assistant_speech(self, text: str):
+        ts = time.time()
+
+        sentence_chunks = self._split_speech_with_timestamps(text, ts)
+
+        for sentence, sentence_ts, sentence_duration in sentence_chunks:
+            entry = TimelineEntry(
+                entry_type=EntryType.ASSISTANT_SPEECH,
+                timestamp=sentence_ts,
+                content=sentence,
+                duration=sentence_duration,
+            )
+            self._insert_entry_chronologically(entry)
+
     def _is_speaking_at_timestamp(self, timestamp: float) -> bool:
         for entry in self.entries:
             if entry.entry_type == EntryType.USER_SPEECH:
@@ -193,60 +233,3 @@ class ConversationTimeline:
         return (
             f"data:image/jpeg;base64,{base64.b64encode(encoded_data).decode('utf-8')}"
         )
-
-    def add_camera_frame(self, frame: rtc.VideoFrame):
-        ts = time.time()
-        if not self._should_add_frame():
-            return
-
-        frame_ref = self._encode_frame(frame)
-
-        entry = TimelineEntry(
-            entry_type=EntryType.CAMERA_FRAME, timestamp=ts, content=frame_ref
-        )
-        self._insert_entry_chronologically(entry)
-
-    def add_screenshare_frame(self, frame: rtc.VideoFrame):
-        ts = time.time()
-        if not self._should_add_frame():
-            return
-
-        frame_ref = self._encode_frame(frame)
-
-        entry = TimelineEntry(
-            entry_type=EntryType.SCREENSHARE_FRAME, timestamp=ts, content=frame_ref
-        )
-        self._insert_entry_chronologically(entry)
-
-    def add_assistant_speech(self, text: str):
-        ts = time.time()
-
-        sentence_chunks = self._split_speech_with_timestamps(text, ts)
-
-        for sentence, sentence_ts, sentence_duration in sentence_chunks:
-            entry = TimelineEntry(
-                entry_type=EntryType.ASSISTANT_SPEECH,
-                timestamp=sentence_ts,
-                content=sentence,
-                duration=sentence_duration,
-            )
-            self._insert_entry_chronologically(entry)
-
-    def get_entries_in_timerange(
-        self, start_time: float, end_time: float
-    ) -> List[TimelineEntry]:
-        """Get all entries within a specific time range"""
-        return [
-            entry for entry in self.entries if start_time <= entry.timestamp <= end_time
-        ]
-
-    def modify_entry(self, index: int, new_content: str):
-        """Modify the content of an existing entry"""
-        if 0 <= index < len(self.entries):
-            self.entries[index].content = new_content
-
-    def get_latest_timestamp(self) -> float:
-        """Get the timestamp of the most recent entry"""
-        if not self.entries:
-            return 0.0
-        return max(entry.timestamp for entry in self.entries)
