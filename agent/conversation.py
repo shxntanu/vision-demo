@@ -63,17 +63,68 @@ class ConversationTimeline:
     def is_speaking(self, value: bool):
         self._is_speaking = value
 
-    def _insert_entry_chronologically(self, entry: TimelineEntry):
-        """Insert an entry into the timeline in chronological order"""
-        # Find the correct position using binary search
-        left, right = 0, len(self.entries)
-        while left < right:
-            mid = (left + right) // 2
-            if self.entries[mid].end_timestamp < entry.end_timestamp:
-                left = mid + 1
-            else:
-                right = mid
-        self.entries.insert(left, entry)
+    def add_user_speech(self, text: str):
+        ts = time.time()
+
+        # Due to intteruption handling, we may need to remove existing trailing user speech entries
+        # as they will be duplicated in the new entry
+        i = len(self.entries) - 1
+        while i >= 0:
+            entry = self.entries[i]
+            if entry.entry_type == EntryType.ASSISTANT_SPEECH:
+                break
+            if entry.entry_type == EntryType.USER_SPEECH:
+                self.entries.pop(i)
+            i -= 1
+
+        sentence_chunks = self._split_speech_with_timestamps(text, ts)
+
+        for sentence, sentence_ts, sentence_duration in sentence_chunks:
+            entry = TimelineEntry(
+                entry_type=EntryType.USER_SPEECH,
+                end_timestamp=sentence_ts,
+                content=sentence,
+                duration=sentence_duration,
+            )
+            self._insert_entry_chronologically(entry)
+
+    def add_assistant_speech(self, text: str):
+        ts = time.time()
+
+        sentence_chunks = self._split_speech_with_timestamps(text, ts)
+
+        for sentence, sentence_ts, sentence_duration in sentence_chunks:
+            entry = TimelineEntry(
+                entry_type=EntryType.ASSISTANT_SPEECH,
+                end_timestamp=sentence_ts,
+                content=sentence,
+                duration=sentence_duration,
+            )
+            self._insert_entry_chronologically(entry)
+
+    def add_camera_frame(self, frame: rtc.VideoFrame):
+        ts = time.time()
+        if not self._sample_frame():
+            return
+
+        frame_ref = self._encode_frame(frame)
+
+        entry = TimelineEntry(
+            entry_type=EntryType.CAMERA_FRAME, end_timestamp=ts, content=frame_ref
+        )
+        self._insert_entry_chronologically(entry)
+
+    def add_screenshare_frame(self, frame: rtc.VideoFrame):
+        ts = time.time()
+        if not self._sample_frame():
+            return
+
+        frame_ref = self._encode_frame(frame)
+
+        entry = TimelineEntry(
+            entry_type=EntryType.SCREENSHARE_FRAME, end_timestamp=ts, content=frame_ref
+        )
+        self._insert_entry_chronologically(entry)
 
     # Packs older frames into grids, to reduce token usage while maintaining visual context
     def repack(self):
@@ -161,68 +212,17 @@ class ConversationTimeline:
 
         self.entries = sixteen_packed
 
-    def add_user_speech(self, text: str):
-        ts = time.time()
+    def _insert_entry_chronologically(self, entry: TimelineEntry):
+        left, right = 0, len(self.entries)
+        while left < right:
+            mid = (left + right) // 2
+            if self.entries[mid].end_timestamp < entry.end_timestamp:
+                left = mid + 1
+            else:
+                right = mid
+        self.entries.insert(left, entry)
 
-        i = len(self.entries) - 1
-        while i >= 0:
-            entry = self.entries[i]
-            if entry.entry_type == EntryType.ASSISTANT_SPEECH:
-                break
-            if entry.entry_type == EntryType.USER_SPEECH:
-                self.entries.pop(i)
-            i -= 1
-
-        sentence_chunks = self._split_speech_with_timestamps(text, ts)
-
-        for sentence, sentence_ts, sentence_duration in sentence_chunks:
-            entry = TimelineEntry(
-                entry_type=EntryType.USER_SPEECH,
-                end_timestamp=sentence_ts,
-                content=sentence,
-                duration=sentence_duration,
-            )
-            self._insert_entry_chronologically(entry)
-
-    def add_camera_frame(self, frame: rtc.VideoFrame):
-        ts = time.time()
-        if not self._should_add_frame():
-            return
-
-        frame_ref = self._encode_frame(frame)
-
-        entry = TimelineEntry(
-            entry_type=EntryType.CAMERA_FRAME, end_timestamp=ts, content=frame_ref
-        )
-        self._insert_entry_chronologically(entry)
-
-    def add_screenshare_frame(self, frame: rtc.VideoFrame):
-        ts = time.time()
-        if not self._should_add_frame():
-            return
-
-        frame_ref = self._encode_frame(frame)
-
-        entry = TimelineEntry(
-            entry_type=EntryType.SCREENSHARE_FRAME, end_timestamp=ts, content=frame_ref
-        )
-        self._insert_entry_chronologically(entry)
-
-    def add_assistant_speech(self, text: str):
-        ts = time.time()
-
-        sentence_chunks = self._split_speech_with_timestamps(text, ts)
-
-        for sentence, sentence_ts, sentence_duration in sentence_chunks:
-            entry = TimelineEntry(
-                entry_type=EntryType.ASSISTANT_SPEECH,
-                end_timestamp=sentence_ts,
-                content=sentence,
-                duration=sentence_duration,
-            )
-            self._insert_entry_chronologically(entry)
-
-    def _should_add_frame(self) -> bool:
+    def _sample_frame(self) -> bool:
         timestamp = time.time()
 
         if self.is_speaking:
@@ -259,11 +259,11 @@ class ConversationTimeline:
 
     def _unpack_four_frames(self, entry: TimelineEntry) -> List[TimelineEntry]:
         image_urls = self._unpack_grid(entry.content, 4)
-        
+
         # Calculate timestamps that evenly distribute across the total duration
         frame_duration = entry.duration / len(image_urls)
         start_time = entry.end_timestamp - entry.duration
-        
+
         entries = []
         for i, image_url in enumerate(image_urls):
             frame_end_timestamp = start_time + ((i + 1) * frame_duration)
@@ -281,11 +281,11 @@ class ConversationTimeline:
 
     def _unpack_sixteen_frames(self, entry: TimelineEntry) -> List[TimelineEntry]:
         image_urls = self._unpack_grid(entry.content, 16)
-        
+
         # Use same timestamp logic as _unpack_four_frames
         frame_duration = entry.duration / len(image_urls)
         start_time = entry.end_timestamp - entry.duration
-        
+
         entries = []
         for i, image_url in enumerate(image_urls):
             frame_end_timestamp = start_time + ((i + 1) * frame_duration)
@@ -349,29 +349,22 @@ class ConversationTimeline:
         grid_size = 2 if count == 4 else 4
         cell_size = output_size // grid_size
 
-        # Create blank canvas
         canvas = Image.new("RGB", (output_size, output_size), "white")
 
-        # Place each frame in the grid
         for idx, frame_url in enumerate(frames):
-            # Calculate position in grid
             row = idx // grid_size
             col = idx % grid_size
 
-            # Decode and resize the frame
             frame_img = self._decode_image(frame_url)
             frame_img = frame_img.resize(
                 (cell_size, cell_size), Image.Resampling.LANCZOS
             )
 
-            # Calculate position to paste
             x = col * cell_size
             y = row * cell_size
 
-            # Paste into canvas
             canvas.paste(frame_img, (x, y))
 
-        # Convert back to data URL
         buffer = io.BytesIO()
         canvas.save(buffer, format="JPEG")
         image_data = base64.b64encode(buffer.getvalue()).decode("utf-8")
@@ -385,31 +378,28 @@ class ConversationTimeline:
         frames = []
         for row in range(grid_size):
             for col in range(grid_size):
-                # Calculate coordinates to crop
                 left = col * output_size
                 top = row * output_size
                 right = left + output_size
                 bottom = top + output_size
 
-                # Crop individual frame
                 frame = packed_img.crop((left, top, right, bottom))
 
-                # Check center portion of frame (middle 60%)
-                inset = int(output_size * 0.2)  # 20% inset from each edge
-                center = frame.crop(
-                    (inset, inset, output_size - inset, output_size - inset)
-                )
-                extrema = center.convert("L").getextrema()
-                if extrema[0] >= 245 and extrema[1] >= 245:  # More lenient threshold
-                    continue
-
-                # Encode and add non-white frame
-                buffer = io.BytesIO()
-                frame.save(buffer, format="JPEG")
-                frame_data = base64.b64encode(buffer.getvalue()).decode("utf-8")
-                frames.append(f"data:image/jpeg;base64,{frame_data}")
+                if not self._is_frame_empty(frame):
+                    buffer = io.BytesIO()
+                    frame.save(buffer, format="JPEG")
+                    frame_data = base64.b64encode(buffer.getvalue()).decode("utf-8")
+                    frames.append(f"data:image/jpeg;base64,{frame_data}")
 
         return frames
+
+    def _is_frame_empty(self, frame: Image) -> bool:
+        # Check center portion of frame (middle 60%) to control for edge artifacts
+        output_size = frame.size[0]
+        inset = int(output_size * 0.2)
+        center = frame.crop((inset, inset, output_size - inset, output_size - inset))
+        extrema = center.convert("L").getextrema()
+        return extrema[0] >= 245 and extrema[1] >= 245
 
     def _decode_image(self, data_url: str) -> Image:
         base64_data = data_url.split(",")[1]

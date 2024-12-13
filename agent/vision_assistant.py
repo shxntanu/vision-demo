@@ -42,6 +42,7 @@ This allows you to understand the live video feed in context, and refer to and r
 You will pay close attention to the historical video feed, as you may be asked questions about events depicted in video frames that are several seconds old, or more.
 """
 
+
 class VisionAssistant:
     def __init__(self):
         self._agent = None
@@ -78,10 +79,18 @@ class VisionAssistant:
 
         self._agent.start(room)
 
-    async def _on_before_tts(
-        self, agent: agents.pipeline.VoicePipelineAgent, text: str | AsyncIterable[str]
+    def _on_track_subscribed(
+        self,
+        track: rtc.Track,
+        publication: rtc.TrackPublication,
+        participant: rtc.RemoteParticipant,
     ):
-        return self._remove_timestamps(text)
+        if track.kind == rtc.TrackKind.KIND_VIDEO:
+            asyncio.create_task(
+                self._handle_video_track(
+                    track, publication.source == rtc.TrackSource.SOURCE_SCREENSHARE
+                )
+            )
 
     def _on_user_started_speaking(self):
         self._conversation.is_speaking = True
@@ -105,11 +114,15 @@ class VisionAssistant:
         chat_ctx: agents.llm.ChatContext,
     ):
         self._inject_conversation(chat_ctx)
-        
+
         if os.getenv("DEBUG"):
             dump_chat_context_to_html(chat_ctx)
-    
-    
+
+    async def _on_before_tts(
+        self, agent: agents.pipeline.VoicePipelineAgent, text: str | AsyncIterable[str]
+    ):
+        return self._remove_timestamps(text)
+
     def _inject_conversation(self, chat_ctx: agents.llm.ChatContext):
         if chat_ctx.messages and chat_ctx.messages[-1].role == "user":
             self._conversation.add_user_speech(chat_ctx.messages[-1].content)
@@ -148,7 +161,11 @@ class VisionAssistant:
                 )
                 chat_ctx.append(
                     text=time_prefix + f"New Video Frame ({type}): ",
-                    images=[agents.llm.ChatImage(image=entry.content, inference_detail="low")],
+                    images=[
+                        agents.llm.ChatImage(
+                            image=entry.content, inference_detail="low"
+                        )
+                    ],
                     role="user",
                 )
             elif (
@@ -163,7 +180,11 @@ class VisionAssistant:
                 chat_ctx.append(
                     text=time_prefix
                     + f"four video frames covering {entry.duration:.1f} seconds ({type}) (ascending left to right, top to bottom): ",
-                    images=[agents.llm.ChatImage(image=entry.content, inference_detail="low")],
+                    images=[
+                        agents.llm.ChatImage(
+                            image=entry.content, inference_detail="low"
+                        )
+                    ],
                     role="user",
                 )
             elif (
@@ -178,24 +199,15 @@ class VisionAssistant:
                 chat_ctx.append(
                     text=time_prefix
                     + f"sixteen video frames covering {entry.duration:.1f} seconds ({type}) (ascending left to right, top to bottom): ",
-                    images=[agents.llm.ChatImage(image=entry.content, inference_detail="low")],
+                    images=[
+                        agents.llm.ChatImage(
+                            image=entry.content, inference_detail="low"
+                        )
+                    ],
                     role="user",
                 )
             else:
                 raise ValueError(f"Unknown entry type: {entry.entry_type}")
-
-    def _on_track_subscribed(
-        self,
-        track: rtc.Track,
-        publication: rtc.TrackPublication,
-        participant: rtc.RemoteParticipant,
-    ):
-        if track.kind == rtc.TrackKind.KIND_VIDEO:
-            asyncio.create_task(
-                self._handle_video_track(
-                    track, publication.source == rtc.TrackSource.SOURCE_SCREENSHARE
-                )
-            )
 
     # Sometimes the LLM will respond with its own timestamps. We need to strip them.
     def _remove_timestamps(self, text: str | AsyncIterable[str]):
