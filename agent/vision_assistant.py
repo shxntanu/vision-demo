@@ -142,7 +142,7 @@ class VisionAssistant:
                 )
                 chat_ctx.append(
                     text=time_prefix
-                    + f"Mosaic of Four Video Frames covering {entry.duration} seconds ({type}) (left to right, top to bottom): ",
+                    + f"four video frames covering {entry.duration:.1f} seconds ({type}) (ascending left to right, top to bottom): ",
                     images=[agents.llm.ChatImage(image=entry.content)],
                     role="user",
                 )
@@ -157,7 +157,7 @@ class VisionAssistant:
                 )
                 chat_ctx.append(
                     text=time_prefix
-                    + f"Mosaic of Sixteen Video Frames covering {entry.duration} seconds ({type}) (left to right, top to bottom): ",
+                    + f"sixteen video frames covering {entry.duration:.1f} seconds ({type}) (ascending left to right, top to bottom): ",
                     images=[agents.llm.ChatImage(image=entry.content)],
                     role="user",
                 )

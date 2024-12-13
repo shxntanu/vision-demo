@@ -259,12 +259,14 @@ class ConversationTimeline:
 
     def _unpack_four_frames(self, entry: TimelineEntry) -> List[TimelineEntry]:
         image_urls = self._unpack_grid(entry.content, 4)
-        frame_duration = entry.duration / 4  # Split duration evenly among frames
-        frame_interval = frame_duration  # Time between frames
-
+        
+        # Calculate timestamps that evenly distribute across the total duration
+        frame_duration = entry.duration / len(image_urls)
+        start_time = entry.end_timestamp - entry.duration
+        
         entries = []
         for i, image_url in enumerate(image_urls):
-            frame_end_timestamp = entry.end_timestamp - (3 - i) * frame_interval
+            frame_end_timestamp = start_time + ((i + 1) * frame_duration)
             entries.append(
                 TimelineEntry(
                     entry_type=EntryType.CAMERA_FRAME
@@ -279,12 +281,14 @@ class ConversationTimeline:
 
     def _unpack_sixteen_frames(self, entry: TimelineEntry) -> List[TimelineEntry]:
         image_urls = self._unpack_grid(entry.content, 16)
-        frame_duration = entry.duration / 16  # Split duration evenly among frames
-        frame_interval = frame_duration  # Time between frames
-
+        
+        # Use same timestamp logic as _unpack_four_frames
+        frame_duration = entry.duration / len(image_urls)
+        start_time = entry.end_timestamp - entry.duration
+        
         entries = []
         for i, image_url in enumerate(image_urls):
-            frame_end_timestamp = entry.end_timestamp - (15 - i) * frame_interval
+            frame_end_timestamp = start_time + ((i + 1) * frame_duration)
             entries.append(
                 TimelineEntry(
                     entry_type=EntryType.CAMERA_FRAME
@@ -301,14 +305,18 @@ class ConversationTimeline:
         # Create a 2x2 grid from 4 frames
         packed_image = self._pack_grid([frame.content for frame in frames], 4)
 
-        # Calculate duration from first to last frame, plus duration of oldest frame
-        duration = (frames[0].end_timestamp - frames[-1].end_timestamp) + frames[-1].duration
+        # Use the end timestamp of the newest frame
+        end_timestamp = frames[-1].end_timestamp
+        # Get the start time of the oldest frame
+        start_of_earliest = frames[0].end_timestamp - frames[0].duration
+        # Calculate total duration
+        duration = end_timestamp - start_of_earliest
 
         return TimelineEntry(
             entry_type=EntryType.FOUR_CAMERA_FRAMES
             if frames[0].entry_type == EntryType.CAMERA_FRAME
             else EntryType.FOUR_SCREENSHARE_FRAMES,
-            end_timestamp=frames[0].end_timestamp,
+            end_timestamp=end_timestamp,
             content=packed_image,
             duration=duration,
         )
@@ -319,14 +327,18 @@ class ConversationTimeline:
         ]
         packed_image = self._pack_grid(images_data, 16)
 
-        # Calculate duration from first to last frame, plus duration of oldest frame
-        duration = (frames[0].end_timestamp - frames[-1].end_timestamp) + frames[-1].duration
+        # Use the end timestamp of the newest frame
+        end_timestamp = frames[-1].end_timestamp
+        # Get the start time of the oldest frame
+        start_of_earliest = frames[0].end_timestamp - frames[0].duration
+        # Calculate total duration
+        duration = end_timestamp - start_of_earliest
 
         return TimelineEntry(
             entry_type=EntryType.SIXTEEN_CAMERA_FRAMES
             if frames[0].entry_type == EntryType.FOUR_CAMERA_FRAMES
             else EntryType.SIXTEEN_SCREENSHARE_FRAMES,
-            end_timestamp=frames[0].end_timestamp,
+            end_timestamp=end_timestamp,
             content=packed_image,
             duration=duration,
         )
