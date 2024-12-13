@@ -42,8 +42,8 @@ class FrameRate:
 
 SPEAKING_FRAME_RATE = 2
 NOT_SPEAKING_FRAME_RATE = 0.5
-FOUR_FRAMES_COMPRESSION_CUTOFF = 10.0
-SIXTEEN_FRAMES_COMPRESSION_CUTOFF = 60.0
+FOUR_FRAMES_COMPRESSION_CUTOFF = 2.0
+SIXTEEN_FRAMES_COMPRESSION_CUTOFF = 10.0
 
 HYPHEN_SPEECH_RATE = 3.83  # hyphens per second
 
@@ -166,6 +166,7 @@ class ConversationTimeline:
         )
 
     def _merge_sixteen_frames(self, frames: List[TimelineEntry]) -> TimelineEntry:
+        print(f"Merging {len(frames)} frames into a 4x4 grid")
         images_data = [
             img for frame in frames for img in self._unmerge_grid(frame.content, 4)
         ]
@@ -218,7 +219,6 @@ class ConversationTimeline:
         return f"data:image/jpeg;base64,{image_data}"
 
     def _unmerge_grid(self, data_url: str, count: Literal[4, 16]) -> List[str]:
-        # Reverse of merge_grid - splits a merged grid back into individual frames
         grid_size = 2 if count == 4 else 4
         merged_img = self._decode_image(data_url)
         output_size = merged_img.size[0] // grid_size
@@ -232,8 +232,17 @@ class ConversationTimeline:
                 right = left + output_size
                 bottom = top + output_size
 
-                # Crop and encode individual frame
+                # Crop individual frame
                 frame = merged_img.crop((left, top, right, bottom))
+                
+                # Check center portion of frame (middle 60%)
+                inset = int(output_size * 0.2)  # 20% inset from each edge
+                center = frame.crop((inset, inset, output_size - inset, output_size - inset))
+                extrema = center.convert('L').getextrema()
+                if extrema[0] >= 245 and extrema[1] >= 245:  # More lenient threshold
+                    continue
+                    
+                # Encode and add non-white frame
                 buffer = io.BytesIO()
                 frame.save(buffer, format="JPEG")
                 frame_data = base64.b64encode(buffer.getvalue()).decode("utf-8")
