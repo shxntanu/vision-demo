@@ -63,8 +63,6 @@ class VisionAssistant:
         if chat_ctx.messages and chat_ctx.messages[-1].role == "user":
             self._conversation.add_user_speech(chat_ctx.messages[-1].content)
 
-        self._conversation.resample_history()
-
         # Clear existing messages but keep the chat context instance
         chat_ctx.messages.clear()
 
@@ -106,6 +104,9 @@ class VisionAssistant:
             if self._conversation.entries
             else time.time()
         )
+        
+        self._conversation.compress_entries()
+        
         for entry in self._conversation.entries:
             relative_time = round(entry.timestamp - first_entry_time, 1)
             time_prefix = f"[{relative_time}s] "
@@ -114,18 +115,29 @@ class VisionAssistant:
                 chat_ctx.append(text=time_prefix + entry.content, role="user")
             elif entry.entry_type == EntryType.ASSISTANT_SPEECH:
                 chat_ctx.append(text=time_prefix + entry.content, role="assistant")
-            elif entry.entry_type == EntryType.CAMERA_FRAME:
+            elif entry.entry_type == EntryType.CAMERA_FRAME or entry.entry_type == EntryType.SCREENSHARE_FRAME:
+                type = "Camera" if entry.entry_type == EntryType.CAMERA_FRAME else "Screenshare"
                 chat_ctx.append(
-                    text=time_prefix + "New Video Frame (Camera): ",
+                    text=time_prefix + f"New Video Frame ({type}): ",
                     images=[agents.llm.ChatImage(image=entry.content)],
                     role="user",
                 )
-            elif entry.entry_type == EntryType.SCREENSHARE_FRAME:
+            elif entry.entry_type == EntryType.FOUR_CAMERA_FRAMES or entry.entry_type == EntryType.FOUR_SCREENSHARE_FRAMES:
+                type = "Camera" if entry.entry_type == EntryType.FOUR_CAMERA_FRAMES else "Screenshare"
                 chat_ctx.append(
-                    text=time_prefix + "New Video Frame (Screenshare): ",
+                    text=time_prefix + f"Mosaic of Four Video Frames covering {entry.duration} seconds ({type}) (left to right, top to bottom): ",
                     images=[agents.llm.ChatImage(image=entry.content)],
                     role="user",
                 )
+            elif entry.entry_type == EntryType.SIXTEEN_CAMERA_FRAMES or entry.entry_type == EntryType.SIXTEEN_SCREENSHARE_FRAMES:
+                type = "Camera" if entry.entry_type == EntryType.SIXTEEN_CAMERA_FRAMES else "Screenshare"
+                chat_ctx.append(
+                    text=time_prefix + f"Mosaic of Sixteen Video Frames covering {entry.duration} seconds ({type}) (left to right, top to bottom): ",
+                    images=[agents.llm.ChatImage(image=entry.content)],
+                    role="user",
+                )
+            else:
+                raise ValueError(f"Unknown entry type: {entry.entry_type}")
 
         if os.getenv("DEBUG"):
             debug_chat_context(chat_ctx)
