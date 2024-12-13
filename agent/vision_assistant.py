@@ -84,7 +84,9 @@ class VisionAssistant:
             
             The user may enable their camera or share their device's screen. You will receive video frames interlaced with the conversation.  Interpret images as a sequential video feed, rather than as static individual images.
             
-            During the course of this conversation, the video feed will be dynamically resampled. You will receive more frames when the user is speaking or for more recent parts of the conversation. Older parts of the conversation will include fewer frames, to optimize the context window as you are a large language model.
+            The video feed has a dynamic frame rate, and it is higher when the user is speaking.
+            
+            To reduce token usage, older frames will get packed into grids. You will retain them so you may still seem them in context as a form of a visual memory.
             
             # Conversation Format
             
@@ -100,15 +102,15 @@ class VisionAssistant:
         )
 
         first_entry_time = (
-            self._conversation.entries[0].timestamp
+            self._conversation.entries[0].end_timestamp
             if self._conversation.entries
             else time.time()
         )
 
-        self._conversation.compress_entries()
+        self._conversation.repack()
 
         for entry in self._conversation.entries:
-            relative_time = round(entry.timestamp - first_entry_time, 1)
+            relative_time = round(entry.end_timestamp - first_entry_time, 1)
             time_prefix = f"[{relative_time}s] "
 
             if entry.entry_type == EntryType.USER_SPEECH:
