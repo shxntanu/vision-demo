@@ -15,7 +15,9 @@ struct AgentView: View {
                 .scaleEffect(isPulsing ? 1.1 : 1.0)
                 .opacity(isPulsing ? 0.8 : 1.0)
                 .animation(
-                    Animation.easeInOut(duration: 1.0).repeatForever(autoreverses: true),
+                    isPulsing ? 
+                        Animation.easeInOut(duration: 1.0).repeatForever(autoreverses: true) : 
+                        .default,
                     value: isPulsing
                 )
 
@@ -32,7 +34,8 @@ struct AgentView: View {
     }
 
     private func updatePulsing() {
-        isPulsing = chatContext.agentParticipant == nil
+        isPulsing =
+        chatContext.agentParticipant == nil
     }
 }
 
@@ -52,8 +55,10 @@ struct AgentAudioVisualizer: View {
     var body: some View {
         ZStack {
             if let track = agent.firstAudioTrack {
-                BarAudioVisualizer(audioTrack: track, barColor: .blue, barCount: 3, barMinOpacity: opacity)
-                    .frame(width: 64, height: 64)
+                BarAudioVisualizer(
+                    audioTrack: track, barColor: .blue, barCount: 3, barMinOpacity: opacity
+                )
+                .frame(width: 64, height: 64)
             } else {
                 Circle().fill(.blue.opacity(opacity)).frame(width: 20, height: 20)
             }

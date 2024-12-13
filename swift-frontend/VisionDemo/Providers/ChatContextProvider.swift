@@ -12,7 +12,7 @@ class ChatContext: ObservableObject {
     var cameraDimensions: Dimensions {
         let screen = UIScreen.main
         let availableWidth = screen.bounds.width - 48
-        let availableHeight = screen.bounds.height - 300
+        let availableHeight = screen.bounds.height - 350
 
         let width = min(Int32(availableWidth * screen.scale), 1080)
         let height = min(Int32(availableHeight * screen.scale), 1920)
@@ -53,8 +53,6 @@ class ChatContext: ObservableObject {
         else {
             throw NSError(domain: "CameraError", code: -1, userInfo: [NSLocalizedDescriptionKey: "No camera available"])
         }
-        let desiredWidth = cameraDimensions.width
-        let desiredHeight = cameraDimensions.height
 
         try await room.localParticipant.setCamera(
             enabled: enabled,
