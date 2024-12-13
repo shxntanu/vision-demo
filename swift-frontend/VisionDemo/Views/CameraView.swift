@@ -1,6 +1,6 @@
-import SwiftUI
 import LiveKit
 import LiveKitComponents
+import SwiftUI
 
 struct CameraView: View {
     @EnvironmentObject var room: Room
@@ -13,10 +13,13 @@ struct CameraView: View {
                 RoundedRectangle(cornerRadius: 16)
                     .background(Color.contentPrimary)
             }
-            
+
             Button(action: {
                 Task {
-                    try? await ((room.localParticipant.firstCameraVideoTrack as? LocalVideoTrack)?.capturer as? CameraCapturer)?.switchCameraPosition()
+                    try? await (
+                        (room.localParticipant.firstCameraVideoTrack as? LocalVideoTrack)?
+                            .capturer as? CameraCapturer
+                    )?.switchCameraPosition()
                 }
             }) {
                 Image(systemName: "camera.rotate")

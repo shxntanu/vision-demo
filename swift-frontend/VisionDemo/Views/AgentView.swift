@@ -1,6 +1,6 @@
-import SwiftUI
 import LiveKit
 import LiveKitComponents
+import SwiftUI
 
 struct AgentView: View {
     @EnvironmentObject var chatContext: ChatContext

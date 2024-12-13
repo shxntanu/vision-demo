@@ -1,6 +1,4 @@
-import ReplayKit
 import LiveKit
+import ReplayKit
 
-class SampleHandler: LKSampleHandler {
-
-}
+class SampleHandler: LKSampleHandler {}

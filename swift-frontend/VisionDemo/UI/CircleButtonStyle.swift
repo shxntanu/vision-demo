@@ -2,7 +2,7 @@ import SwiftUI
 
 struct CircleButtonStyle: ButtonStyle {
     var isActive: Bool
-    
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(size: 24))

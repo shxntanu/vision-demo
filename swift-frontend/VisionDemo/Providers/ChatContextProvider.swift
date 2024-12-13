@@ -1,11 +1,11 @@
+import AVFoundation
 import Foundation
 import LiveKit
 import SwiftUI
-import AVFoundation
 
 @MainActor
 class ChatContext: ObservableObject {
-    @Published var room: Room = Room()
+    @Published var room: Room = .init()
     @Published private(set) var isConnected: Bool = false
     @Published private(set) var agentParticipant: RemoteParticipant?
 
@@ -48,7 +48,9 @@ class ChatContext: ObservableObject {
     }
 
     func setCamera(enabled: Bool) async throws {
-        guard let device = AVCaptureDevice.devices().first(where: { $0.facingPosition == .back }) ?? AVCaptureDevice.devices().first else {
+        guard let device = AVCaptureDevice.devices().first(where: { $0.facingPosition == .back }) ?? AVCaptureDevice
+            .devices().first
+        else {
             throw NSError(domain: "CameraError", code: -1, userInfo: [NSLocalizedDescriptionKey: "No camera available"])
         }
         let desiredWidth = cameraDimensions.width
@@ -67,7 +69,7 @@ class ChatContext: ObservableObject {
 extension ChatContext: RoomDelegate {
     nonisolated func room(_ room: Room, participantDidConnect participant: RemoteParticipant) {
         Task { @MainActor in
-            if participant.kind == .agent && agentParticipant == nil {
+            if participant.kind == .agent, agentParticipant == nil {
                 agentParticipant = participant
             }
         }

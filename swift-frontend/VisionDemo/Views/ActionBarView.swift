@@ -1,5 +1,5 @@
-import SwiftUI
 import LiveKit
+import SwiftUI
 
 struct ActionBarView: View {
     @EnvironmentObject var chatContext: ChatContext
@@ -19,7 +19,11 @@ struct ActionBarView: View {
             Button(action: {
                 Task {
                     if room.localParticipant.isScreenShareEnabled() {
-                        try await room.localParticipant.set(source: .screenShareVideo, enabled: false, captureOptions: ScreenShareCaptureOptions(useBroadcastExtension: true))
+                        try await room.localParticipant.set(
+                            source: .screenShareVideo,
+                            enabled: false,
+                            captureOptions: ScreenShareCaptureOptions(useBroadcastExtension: true)
+                        )
                     }
                     try await chatContext.setCamera(enabled: !room.localParticipant.isCameraEnabled())
                 }
@@ -33,7 +37,11 @@ struct ActionBarView: View {
                     if room.localParticipant.isCameraEnabled() {
                         try await chatContext.setCamera(enabled: false)
                     }
-                    try await room.localParticipant.set(source: .screenShareVideo, enabled: !room.localParticipant.isScreenShareEnabled(), captureOptions: ScreenShareCaptureOptions(useBroadcastExtension: true))
+                    try await room.localParticipant.set(
+                        source: .screenShareVideo,
+                        enabled: !room.localParticipant.isScreenShareEnabled(),
+                        captureOptions: ScreenShareCaptureOptions(useBroadcastExtension: true)
+                    )
                 }
             }) {
                 Label("Share Screen", systemImage: "rectangle.dashed.badge.record")

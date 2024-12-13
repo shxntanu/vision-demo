@@ -4,7 +4,7 @@ import SwiftUI
 struct VisionDemoApp: App {
     var body: some Scene {
         WindowGroup {
-            ChatContextProvider() {
+            ChatContextProvider {
                 ConnectionView()
             }
         }

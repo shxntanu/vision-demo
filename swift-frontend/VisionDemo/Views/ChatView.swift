@@ -25,7 +25,8 @@ struct ChatView: View {
             AgentView()
                 .frame(
                     width: room.localParticipant.isCameraEnabled() ? 128 : 256,
-                    height: room.localParticipant.isCameraEnabled() ? 128 : 256)
+                    height: room.localParticipant.isCameraEnabled() ? 128 : 256
+                )
                 .animation(.snappy, value: room.localParticipant.isCameraEnabled())
         }
     }
