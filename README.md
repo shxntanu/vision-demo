@@ -4,6 +4,8 @@ This LiveKit example project demonstrates how to build a sophisticated AI agent 
 
 The project contains a native iOS frontend, built on LiveKit's [Swift SDK](https://github.com/livekit/client-sdk-swift), and a backend agent, built on LiveKit's [Python Agents framework](https://github.com/livekit/agents).
 
+![app screenshot](screenshot.png)
+
 # Features
 
 ### Real-time Video & Audio
