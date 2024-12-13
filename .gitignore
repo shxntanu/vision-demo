@@ -1,6 +1,7 @@
 venv
 .env
 .env.local
+swift-frontend/VisionDemo/Resources/Secrets.xcconfig
 xcuserdata
 .DS_Store
 __pycache__

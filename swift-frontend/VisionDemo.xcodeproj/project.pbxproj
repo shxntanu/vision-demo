@@ -385,6 +385,8 @@
 		};
 		B5C2EF302D08AF6A00FAC766 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = B5AFF8C02D0BAC950008976F /* VisionDemo */;
+			baseConfigurationReferenceRelativePath = Resources/Secrets.xcconfig;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -426,6 +428,8 @@
 		};
 		B5C2EF312D08AF6A00FAC766 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = B5AFF8C02D0BAC950008976F /* VisionDemo */;
+			baseConfigurationReferenceRelativePath = Resources/Secrets.xcconfig;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -474,7 +478,7 @@
 				DEVELOPMENT_TEAM = 76TVFCUKK7;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = BroadcastExtension/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Vision Demo";
+				INFOPLIST_KEY_CFBundleDisplayName = "LiveKit Vision";
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -507,7 +511,7 @@
 				DEVELOPMENT_TEAM = 76TVFCUKK7;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = BroadcastExtension/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Vision Demo";
+				INFOPLIST_KEY_CFBundleDisplayName = "LiveKit Vision";
 				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (

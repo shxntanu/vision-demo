@@ -88,7 +88,7 @@ This project includes a polished sample iOS app that you can build yourself.
 ### Setup
 
 1. Open `swift-frontend/VisionDemo/VisionDemo.xcodeproj` in Xcode.
-2. Put your token server ID into the `LKSandboxTokenServerId` key in the "Info" section of the `VisionDemo` target.
+2. Create a file `swift-frontend/VisionDemo/Resources/Secrets.xcconfig` with `LK_SANDBOX_TOKEN_SERVER_ID=` and your token server's unique ID.
 3. Edit the bundle identifier for both the `VisionDemo` and `BroadcastExtension` targets to suitable values for your own use.
 4. Create a new App Group and select it in the "Signing & Capabilities" section of both the `VisionDemo` and `BroadcastExtension` targets.
 5. Add the app group identifier to the Info section of both targets as `RTCAppGroupIdentifier`.

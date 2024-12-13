@@ -10,7 +10,7 @@ struct ConnectionDetails: Codable {
 class TokenService {
     private let sandboxId: String = {
         guard let sandboxId = Bundle.main.object(forInfoDictionaryKey: "LKSandboxTokenServerId") as? String else {
-            fatalError("LKSandboxTokenServerId not found in Info.plist")
+            fatalError("LKSandboxTokenServerId not found. Did you add it to Secrets.xcconfig?")
         }
         return sandboxId
     }()

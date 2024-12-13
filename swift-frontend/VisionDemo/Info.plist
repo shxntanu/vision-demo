@@ -5,7 +5,7 @@
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LKSandboxTokenServerId</key>
-	<string>synchronized-matrix-pbycti</string>
+	<string>$(LK_SANDBOX_TOKEN_SERVER_ID)</string>
 	<key>RTCAppGroupIdentifier</key>
 	<string>group.io.livekit.vision</string>
 	<key>RTCScreenSharingExtension</key>
