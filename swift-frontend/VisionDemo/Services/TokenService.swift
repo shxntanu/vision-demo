@@ -8,7 +8,13 @@ struct ConnectionDetails: Codable {
 }
 
 class TokenService {
-    private let sandboxId = "synchronized-matrix-pbycti" // TODO: this should be in plist or something
+    private let sandboxId: String = {
+        guard let sandboxId = Bundle.main.object(forInfoDictionaryKey: "LKSandboxTokenServerId") as? String else {
+            fatalError("LKSandboxTokenServerId not found in Info.plist")
+        }
+        return sandboxId
+    }()
+    
     private let baseUrl = "https://cloud-api.livekit.io/api/sandbox/connection-details"
     
     func fetchConnectionDetails(roomName: String, participantName: String) async throws -> ConnectionDetails {

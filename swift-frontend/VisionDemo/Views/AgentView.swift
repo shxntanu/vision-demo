@@ -28,6 +28,8 @@ struct AgentVisualizer: View {
 
 struct AgentLoadingView: View {
     var body: some View {
-        Image(systemName: "ellipsis")
+        Text("Waiting for agent…")
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
     }
 }

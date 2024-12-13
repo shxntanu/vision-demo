@@ -44,6 +44,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		B5AFF8D22D0C08F90008976F /* Exceptions for "VisionDemo" folder in "VisionDemo" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = B5C2EF1F2D08AF6900FAC766 /* VisionDemo */;
+		};
 		B5C2EF6A2D0977AB00FAC766 /* Exceptions for "BroadcastExtension" folder in "BroadcastExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -56,6 +63,9 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		B5AFF8C02D0BAC950008976F /* VisionDemo */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				B5AFF8D22D0C08F90008976F /* Exceptions for "VisionDemo" folder in "VisionDemo" target */,
+			);
 			path = VisionDemo;
 			sourceTree = "<group>";
 		};
@@ -385,6 +395,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = VisionDemo/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Vision Demo";
 				INFOPLIST_KEY_NSCameraUsageDescription = "To see your beautiful face.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "To hear your beautiful voice.";
@@ -425,6 +436,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = VisionDemo/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Vision Demo";
 				INFOPLIST_KEY_NSCameraUsageDescription = "To see your beautiful face.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "To hear your beautiful voice.";

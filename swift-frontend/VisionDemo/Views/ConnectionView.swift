@@ -10,7 +10,16 @@ struct ConnectionView: View {
         if chatContext.isConnected {
             ChatView()
         } else {
-            VStack {
+            VStack(spacing: 24) {
+                Text("LiveKit Vision Demo")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                
+                Text("A sample project showcasing a conversational voice AI agent that can process a realtime video feed or screenshare.")
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal)
+
                 Button(action: {
                     Task {
                         isConnecting = true
@@ -31,13 +40,19 @@ struct ConnectionView: View {
                         isConnecting = false
                     }
                 }) {
-                    Label("Connect",
-                          systemImage: "waveform")
-                    .fontWeight(.bold)
+                    Text("Connect")
+                        .font(.headline)
+                        .frame(maxWidth: 280)
                 }
-                .buttonStyle(.circleButton(isActive: false))
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
                 .disabled(isConnecting)
+
+                Link("View Source", destination: URL(string: "https://github.com/livekit-examples/vision-demo")!)
+                    .font(.caption)
+                    .padding(.top, 8)
             }
+            .padding()
         }
     }
 }
