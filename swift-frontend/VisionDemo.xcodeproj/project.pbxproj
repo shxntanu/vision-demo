@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		B56EDEB62D0D004B00C0EC69 /* LiveKitKrispNoiseFilter in Frameworks */ = {isa = PBXBuildFile; productRef = B56EDEB52D0D004B00C0EC69 /* LiveKitKrispNoiseFilter */; };
 		B5C2EF652D0977AB00FAC766 /* ReplayKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B5C2EF642D0977AB00FAC766 /* ReplayKit.framework */; };
 		B5C2EF712D09781800FAC766 /* BroadcastExtension.appex in CopyFiles */ = {isa = PBXBuildFile; fileRef = B5C2EF622D0977AB00FAC766 /* BroadcastExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		B5C2EF9D2D0980E700FAC766 /* LiveKit in Frameworks */ = {isa = PBXBuildFile; productRef = B5C2EF9C2D0980E700FAC766 /* LiveKit */; };
@@ -84,6 +85,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B56EDEB62D0D004B00C0EC69 /* LiveKitKrispNoiseFilter in Frameworks */,
 				B5C2EF9D2D0980E700FAC766 /* LiveKit in Frameworks */,
 				B5C2EFA02D0980F400FAC766 /* LiveKitComponents in Frameworks */,
 			);
@@ -152,6 +154,7 @@
 			packageProductDependencies = (
 				B5C2EF9C2D0980E700FAC766 /* LiveKit */,
 				B5C2EF9F2D0980F400FAC766 /* LiveKitComponents */,
+				B56EDEB52D0D004B00C0EC69 /* LiveKitKrispNoiseFilter */,
 			);
 			productName = Vision;
 			productReference = B5C2EF202D08AF6900FAC766 /* VisionDemo.app */;
@@ -210,6 +213,7 @@
 			packageReferences = (
 				B5C2EFC02D0982A600FAC766 /* XCRemoteSwiftPackageReference "client-sdk-swift" */,
 				B5C2EFC12D0982B500FAC766 /* XCRemoteSwiftPackageReference "components-swift" */,
+				B56EDEB42D0D004B00C0EC69 /* XCRemoteSwiftPackageReference "swift-krisp-noise-filter" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = B5C2EF212D08AF6900FAC766 /* Products */;
@@ -569,6 +573,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		B56EDEB42D0D004B00C0EC69 /* XCRemoteSwiftPackageReference "swift-krisp-noise-filter" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/livekit/swift-krisp-noise-filter";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.0.7;
+			};
+		};
 		B5C2EFC02D0982A600FAC766 /* XCRemoteSwiftPackageReference "client-sdk-swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/livekit/client-sdk-swift";
@@ -588,6 +600,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		B56EDEB52D0D004B00C0EC69 /* LiveKitKrispNoiseFilter */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B56EDEB42D0D004B00C0EC69 /* XCRemoteSwiftPackageReference "swift-krisp-noise-filter" */;
+			productName = LiveKitKrispNoiseFilter;
+		};
 		B5C2EF9C2D0980E700FAC766 /* LiveKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = LiveKit;

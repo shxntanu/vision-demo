@@ -2,6 +2,7 @@ import AVFoundation
 import Foundation
 import LiveKit
 import SwiftUI
+import LiveKitKrispNoiseFilter
 
 @MainActor
 class ChatContext: ObservableObject {
@@ -9,10 +10,12 @@ class ChatContext: ObservableObject {
     @Published private(set) var isConnected: Bool = false
     @Published private(set) var agentParticipant: RemoteParticipant?
 
+    private let krispProcessor = LiveKitKrispNoiseFilter()
+
     var cameraDimensions: Dimensions {
         let screen = UIScreen.main
         let availableWidth = screen.bounds.width - 48
-        let availableHeight = screen.bounds.height - 350
+        let availableHeight = screen.bounds.height - 320
 
         let width = min(Int32(availableWidth * screen.scale), 1080)
         let height = min(Int32(availableHeight * screen.scale), 1920)
@@ -21,12 +24,16 @@ class ChatContext: ObservableObject {
     }
 
     init() {
+        AudioManager.shared.capturePostProcessingDelegate = krispProcessor
+
         room.add(delegate: self)
+        room.add(delegate: krispProcessor)
     }
 
     func disconnect() async {
         await room.disconnect()
         room = Room()
+        room.add(delegate: self.krispProcessor)
         room.add(delegate: self)
         isConnected = false
         agentParticipant = nil
