@@ -249,7 +249,7 @@ class ConversationTimeline:
                 resize_options=images.ResizeOptions(
                     width=512,
                     height=512,
-                    strategy="center_aspect_fit",
+                    strategy="scale_aspect_fit",
                 ),
             ),
         )
