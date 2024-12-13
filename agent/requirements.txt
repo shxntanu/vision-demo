@@ -1,5 +1,7 @@
-git+https://github.com/livekit/agents.git@bcherry/oai-detail#subdirectory=livekit-agents
-git+https://github.com/livekit/agents.git@bcherry/oai-detail#subdirectory=livekit-plugins/livekit-plugins-openai
+# As of 10/13/2024 this project relies on some bleeding-edge changes not yet released to PyPi
+git+https://github.com/livekit/agents.git@main#subdirectory=livekit-agents
+git+https://github.com/livekit/agents.git@main#subdirectory=livekit-plugins/livekit-plugins-openai
+
 livekit-plugins-silero
 livekit-plugins-deepgram
 livekit-plugins-cartesia

@@ -27,7 +27,7 @@ The backend agent is built on the [VoicePipelineAgent](https://docs.livekit.io/a
 
 The primary modification is the use of a new class, `Conversation`, to track the conversation transcript and video feed over time. These entries are timestamped and can be converted to `ChatContext` before being sent to the LLM. By maintaining the video feed in this format, the `Conversation` class is able to dynamically resample and pack video frames to manage the LLM context window.
 
-Currently, the conversation samples 2 frames per second while the user is speaking, and 0.5 frames per second otherwise. The most recent 10 seconds of video is always passed to the LLM at full-size, but older frames are packed together to reduce the context size.  Frames up to a minute old are packed into 2x2 grids, and frames older than that are packed into 4x4 grids.
+Currently, the conversation samples 2 frames per second while the user is speaking, and 0.5 frames per second otherwise. The most recent 10 seconds of video is always passed to the LLM individually, but older frames are packed together to reduce the context size.  Frames up to a minute old are packed into 2x2 grids, and frames older than that are packed into 4x4 grids.
 
 The LLM in use is OpenAI's GPT-4o, and images are passed at 512x512 max size and given the "low" detail parameter for vision.
 
