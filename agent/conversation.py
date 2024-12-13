@@ -78,12 +78,24 @@ class ConversationTimeline:
     # Collages older frames into grids, to reduce token usage while maintaining visual context
     def compress_entries(self):
         now = time.time()
+        
+        # First unpack any existing grids back into individual frames
+        unpacked = []
+        for entry in self.entries:
+            if entry.entry_type in [EntryType.SIXTEEN_CAMERA_FRAMES, EntryType.SIXTEEN_SCREENSHARE_FRAMES]:
+                # Unpack 4x4 grid back into individual frames
+                unpacked.extend(self._unpack_sixteen_frames(entry))
+            elif entry.entry_type in [EntryType.FOUR_CAMERA_FRAMES, EntryType.FOUR_SCREENSHARE_FRAMES]:
+                # Unpack 2x2 grid back into individual frames
+                unpacked.extend(self._unpack_four_frames(entry))
+            else:
+                unpacked.append(entry)
 
         resampled = []
         four_frames_buffer = []
 
         # First pass will compress raw frames into 2x2 grids
-        for entry in reversed(self.entries):
+        for entry in reversed(unpacked):
             age = now - entry.timestamp
 
             if entry.entry_type not in [
@@ -349,3 +361,37 @@ class ConversationTimeline:
         return (
             f"data:image/jpeg;base64,{base64.b64encode(encoded_data).decode('utf-8')}"
         )
+
+    def _unpack_four_frames(self, entry: TimelineEntry) -> List[TimelineEntry]:
+        image_urls = self._unmerge_grid(entry.content, 4)
+        frame_duration = entry.duration / 4  # Split duration evenly among frames
+        frame_interval = frame_duration  # Time between frames
+        
+        entries = []
+        for i, image_url in enumerate(image_urls):
+            frame_timestamp = entry.timestamp - (3 - i) * frame_interval
+            entries.append(TimelineEntry(
+                entry_type=EntryType.CAMERA_FRAME if entry.entry_type == EntryType.FOUR_CAMERA_FRAMES 
+                    else EntryType.SCREENSHARE_FRAME,
+                timestamp=frame_timestamp,
+                content=image_url,
+                duration=frame_duration
+            ))
+        return entries
+
+    def _unpack_sixteen_frames(self, entry: TimelineEntry) -> List[TimelineEntry]:
+        image_urls = self._unmerge_grid(entry.content, 16)
+        frame_duration = entry.duration / 16  # Split duration evenly among frames
+        frame_interval = frame_duration  # Time between frames
+        
+        entries = []
+        for i, image_url in enumerate(image_urls):
+            frame_timestamp = entry.timestamp - (15 - i) * frame_interval
+            entries.append(TimelineEntry(
+                entry_type=EntryType.CAMERA_FRAME if entry.entry_type == EntryType.SIXTEEN_CAMERA_FRAMES 
+                    else EntryType.SCREENSHARE_FRAME,
+                timestamp=frame_timestamp,
+                content=image_url,
+                duration=frame_duration
+            ))
+        return entries
