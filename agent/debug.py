@@ -5,13 +5,13 @@ from typing import List
 from livekit.agents.llm import ChatImage, ChatMessage
 
 
-def debug_chat_context(chat_context: List[ChatMessage]):
+# Dumps the ChatContext to an HTML file for debugging purposes
+def dump_chat_context_to_html(chat_context: List[ChatMessage]):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     debug_dir = os.path.join(os.path.dirname(__file__), "debug")
     os.makedirs(debug_dir, exist_ok=True)
     html_path = os.path.join(debug_dir, f"{timestamp}.html")
 
-    # Create HTML content with same styling as before
     html_content = """
     <!DOCTYPE html>
     <html>
@@ -19,40 +19,72 @@ def debug_chat_context(chat_context: List[ChatMessage]):
         <title>Chat Context Debug</title>
         <style>
             body {
-                font-family: Arial, sans-serif;
-                max-width: 800px;
-                margin: 20px auto;
-                padding: 0 20px;
+                max-width: 1024px;
+                margin: 24px auto;
+                padding: 0 24px;
                 background: #f5f5f5;
             }
-            .entry {
+            
+            .messages {
+                display: flex;
+                flex-direction: column;
+            }
+            
+            body.reversed .messages {
+                flex-direction: column-reverse;
+            }
+            
+            .message {
                 background: white;
-                padding: 15px;
-                margin: 10px 0;
-                border-radius: 5px;
+                padding: 16px;
+                margin: 16px 0;
+                border-radius: 8px;
                 box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             }
-            .header {
-                color: #444;
-                font-size: 0.9em;
-                margin-bottom: 8px;
+            
+            .sort-button {
+                padding: 8px 16px;
+                background: #007bff;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                margin: 16px 0;
             }
+            
+            body:not(.reversed) .sort-button::before {
+                content: "Sort Descending";
+            }
+            
+            body.reversed .sort-button::before {
+                content: "Sort Ascending";
+            }
+            
+            .sort-button:hover {
+                background: #0056b3;
+            }
+            
             .timestamp {
                 color: #666;
                 font-size: 0.8em;
             }
+            
             .content {
                 margin-top: 10px;
             }
+            
             .content img {
                 max-width: 300px;
                 height: auto;
                 display: block;
                 margin: 10px 0;
             }
-            .error {
-                color: red;
-                font-size: 0.9em;
+            
+            pre {
+                white-space: pre;
+                overflow-x: auto;
+                max-width: 100%;
+                border-radius: 4px;
             }
         </style>
     </head>
@@ -60,42 +92,31 @@ def debug_chat_context(chat_context: List[ChatMessage]):
     """
 
     html_content += f"""
-        <h1>Chat Context Debug - {timestamp}</h1>
+    <h1>ChatContext - {timestamp}</h1>
+    <button class="sort-button" onclick="document.body.classList.toggle('reversed');"></button>
+    <div class="messages">
     """
 
     for msg in chat_context.messages:
         html_content += f"""
-        <div class="entry">
-            <div class="header">
-                <strong>{msg.role}</strong>
-            </div>
-            <div class="content">
+        <div class="message">
+            <strong>{msg.role}</strong>
         """
 
         content_list = msg.content if isinstance(msg.content, list) else [msg.content]
 
         for content in content_list:
             if isinstance(content, ChatImage):
-                try:
-                    if isinstance(content.image, str) and content.image.startswith(
-                        "data:image/jpeg;base64,"
-                    ):
-                        html_content += f'<img src="{content.image}" alt="Image">'
-                    else:
-                        html_content += "<p>[Other image data]</p>"
-                except Exception as e:
-                    html_content += (
-                        f'<p class="error">Error processing image: {str(e)}</p>'
-                    )
+                html_content += f'<img src="{content.image}" alt="{content.image}" />'
             else:
-                html_content += f"<p>{content}</p>"
+                html_content += f"<pre>{content}</pre>"
 
         html_content += """
-            </div>
         </div>
         """
 
     html_content += """
+    </div>
     </body>
     </html>
     """

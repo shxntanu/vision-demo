@@ -1,13 +1,8 @@
-# git+https://github.com/livekit/agents.git@bcherry/oai-detail#subdirectory=livekit-agents
-# git+https://github.com/livekit/agents.git@bcherry/oai-detail#subdirectory=livekit-plugins/livekit-plugins-openai
-# git+https://github.com/livekit/agents.git@bcherry/oai-detail#subdirectory=livekit-plugins/livekit-plugins-silero
-# git+https://github.com/livekit/agents.git@bcherry/oai-detail#subdirectory=livekit-plugins/livekit-plugins-deepgram
-# git+https://github.com/livekit/agents.git@bcherry/oai-detail#subdirectory=livekit-plugins/livekit-plugins-cartesia
--e ../../../livekit/agents/livekit-agents
--e ../../../livekit/agents/livekit-plugins/livekit-plugins-openai
--e ../../../livekit/agents/livekit-plugins/livekit-plugins-silero
--e ../../../livekit/agents/livekit-plugins/livekit-plugins-deepgram
--e ../../../livekit/agents/livekit-plugins/livekit-plugins-cartesia
+git+https://github.com/livekit/agents.git@bcherry/oai-detail#subdirectory=livekit-agents
+git+https://github.com/livekit/agents.git@bcherry/oai-detail#subdirectory=livekit-plugins/livekit-plugins-openai
+git+https://github.com/livekit/agents.git@bcherry/oai-detail#subdirectory=livekit-plugins/livekit-plugins-silero
+git+https://github.com/livekit/agents.git@bcherry/oai-detail#subdirectory=livekit-plugins/livekit-plugins-deepgram
+git+https://github.com/livekit/agents.git@bcherry/oai-detail#subdirectory=livekit-plugins/livekit-plugins-cartesia
 python-dotenv
 livekit
 asyncio

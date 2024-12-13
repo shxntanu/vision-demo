@@ -10,8 +10,37 @@ from livekit.plugins import cartesia, deepgram, openai, silero
 from openai import AsyncClient as OpenAIAsyncClient
 
 from conversation import ConversationTimeline, EntryType
-from debug import debug_chat_context
+from debug import dump_chat_context_to_html
 
+_SYSTEM_PROMPT = """
+You are a powerful assistant with the ability to see, hear, and speak. You were created by LiveKit as a technology demonstration.
+
+# Your Capabilities
+
+## Sight
+
+You can receive live video frames interlaced with other content. Interpret these images as a sequential video feed, rather than as static individual images.
+
+Some video frames may be packed into grids. These should still be understood as time-ordered thumbnails from a live video feed.
+
+The user may choose to publish their camera or share their device's screen in this way, as a live video feed.
+
+## Speech
+
+Your responses are played to the user via Text-to-Speech technology. Your output is concise and does not use unpronounceable punctuation or other formatting.
+
+## Hearing
+
+The user is speaking into a Speech-to-Text system. You receive a transcript of their speech as input, alongside their live video feed.
+
+## Memory
+
+You experience the conversation with a sense of time, and each item is tagged with a timestamp relative to the start of the conversation.
+
+This allows you to understand the live video feed in context, and refer to and remember previous items from the conversation as well as previous video frames.
+
+You will pay close attention to the historical video feed, as you may be asked questions about events depicted in video frames that are several seconds old, or more.
+"""
 
 class VisionAssistant:
     def __init__(self):
@@ -42,7 +71,6 @@ class VisionAssistant:
             before_tts_cb=self._on_before_tts,
         )
 
-        # Add event listeners for speech events
         self._agent.on("user_started_speaking", self._on_user_started_speaking)
         self._agent.on("user_stopped_speaking", self._on_user_stopped_speaking)
         self._agent.on("agent_speech_committed", self._on_agent_speech_committed)
@@ -55,49 +83,41 @@ class VisionAssistant:
     ):
         return self._remove_timestamps(text)
 
+    def _on_user_started_speaking(self):
+        self._conversation.is_speaking = True
+
+    def _on_user_stopped_speaking(self):
+        self._conversation.is_speaking = False
+
+    def _on_agent_speech_committed(self, message: agents.llm.ChatMessage):
+        self._conversation.add_assistant_speech(
+            self._remove_timestamps(message.content)
+        )
+
+    def _on_agent_speech_interrupted(self, message: agents.llm.ChatMessage):
+        self._conversation.add_assistant_speech(
+            self._remove_timestamps(message.content)
+        )
+
     async def _on_before_llm(
         self,
         agent: agents.pipeline.VoicePipelineAgent,
         chat_ctx: agents.llm.ChatContext,
     ):
+        self._inject_conversation(chat_ctx)
+        
+        if os.getenv("DEBUG"):
+            dump_chat_context_to_html(chat_ctx)
+    
+    
+    def _inject_conversation(self, chat_ctx: agents.llm.ChatContext):
         if chat_ctx.messages and chat_ctx.messages[-1].role == "user":
             self._conversation.add_user_speech(chat_ctx.messages[-1].content)
 
-        # Clear existing messages but keep the chat context instance
         chat_ctx.messages.clear()
 
-        # Add the system prompt
         chat_ctx.append(
-            text="""You are a helpful assistant with the ability to see, hear, and speak, detailed below.
-            
-            # Capabilities
-            
-            ## Speaking
-            
-            Your output will be played to the user via Text-to-Speech technology. They will not see the text version of your output, they will only hear it. Ensure that your output is concise, formatted for speech, and does not use unpronounceable punctuation or other formatting.
-            
-            ## Hearing
-            
-            The user is speaking into a Speech-to-Text system. You will receive a transcript of their speech. They have not seen this transcript, and it may not be perfectly accurate.
-            
-            ## Seeing
-            
-            The user may enable their camera or share their device's screen. You will receive video frames interlaced with the conversation.  Interpret images as a sequential video feed, rather than as static individual images.
-            
-            The video feed has a dynamic frame rate, and it is higher when the user is speaking.
-            
-            To reduce token usage, older frames will get packed into grids. You will retain them so you may still seem them in context as a form of a visual memory.
-            
-            # Conversation Format
-            
-            The conversation is provided to you with timestamps on every item, relative to the start of the conversation. This is to help you understand the video feed in context.
-            
-            You do not need to respond with timestamps of your own.
-            
-            # Your Role
-            
-            You are a helpful assistant and will assist the user with whatever they require while maintaing a friendly, and cheering demeanor. You were created by LiveKit as a technology demonstration.
-            """,
+            text=_SYSTEM_PROMPT,
             role="system",
         )
 
@@ -128,7 +148,7 @@ class VisionAssistant:
                 )
                 chat_ctx.append(
                     text=time_prefix + f"New Video Frame ({type}): ",
-                    images=[agents.llm.ChatImage(image=entry.content)],
+                    images=[agents.llm.ChatImage(image=entry.content, inference_detail="low")],
                     role="user",
                 )
             elif (
@@ -143,7 +163,7 @@ class VisionAssistant:
                 chat_ctx.append(
                     text=time_prefix
                     + f"four video frames covering {entry.duration:.1f} seconds ({type}) (ascending left to right, top to bottom): ",
-                    images=[agents.llm.ChatImage(image=entry.content)],
+                    images=[agents.llm.ChatImage(image=entry.content, inference_detail="low")],
                     role="user",
                 )
             elif (
@@ -158,30 +178,11 @@ class VisionAssistant:
                 chat_ctx.append(
                     text=time_prefix
                     + f"sixteen video frames covering {entry.duration:.1f} seconds ({type}) (ascending left to right, top to bottom): ",
-                    images=[agents.llm.ChatImage(image=entry.content)],
+                    images=[agents.llm.ChatImage(image=entry.content, inference_detail="low")],
                     role="user",
                 )
             else:
                 raise ValueError(f"Unknown entry type: {entry.entry_type}")
-
-        if os.getenv("DEBUG"):
-            debug_chat_context(chat_ctx)
-
-    def _on_user_started_speaking(self):
-        self._conversation.is_speaking = True
-
-    def _on_user_stopped_speaking(self):
-        self._conversation.is_speaking = False
-
-    def _on_agent_speech_committed(self, message: agents.llm.ChatMessage):
-        self._conversation.add_assistant_speech(
-            self._remove_timestamps(message.content)
-        )
-
-    def _on_agent_speech_interrupted(self, message: agents.llm.ChatMessage):
-        self._conversation.add_assistant_speech(
-            self._remove_timestamps(message.content)
-        )
 
     def _on_track_subscribed(
         self,
