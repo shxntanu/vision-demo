@@ -1,8 +1,8 @@
 git+https://github.com/livekit/agents.git@bcherry/oai-detail#subdirectory=livekit-agents
 git+https://github.com/livekit/agents.git@bcherry/oai-detail#subdirectory=livekit-plugins/livekit-plugins-openai
-git+https://github.com/livekit/agents.git@bcherry/oai-detail#subdirectory=livekit-plugins/livekit-plugins-silero
-git+https://github.com/livekit/agents.git@bcherry/oai-detail#subdirectory=livekit-plugins/livekit-plugins-deepgram
-git+https://github.com/livekit/agents.git@bcherry/oai-detail#subdirectory=livekit-plugins/livekit-plugins-cartesia
+livekit-plugins-silero
+livekit-plugins-deepgram
+livekit-plugins-cartesia
 python-dotenv
 livekit
 asyncio
