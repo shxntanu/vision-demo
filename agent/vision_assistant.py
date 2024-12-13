@@ -65,7 +65,7 @@ class VisionAssistant:
 
         self._agent = agents.pipeline.VoicePipelineAgent(
             vad=silero.VAD.load(),
-            stt=deepgram.STT(model="nova-2-conversationalai"),
+            stt=deepgram.STT(model="nova-2-general"),
             llm=openai.LLM(model="gpt-4o-mini", client=self._openai_client),
             tts=cartesia.TTS(voice="248be419-c632-4f23-adf1-5324ed7dbf1d"),
             before_llm_cb=self._on_before_llm,
