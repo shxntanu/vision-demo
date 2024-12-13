@@ -75,13 +75,14 @@ class ConversationTimeline:
                 right = mid
         self.entries.insert(left, entry)
 
+    # Collages older frames into grids, to reduce token usage while maintaining visual context
     def compress_entries(self):
         now = time.time()
 
-        # First pass: compress frames older than 10 seconds into 2x2 grids
         resampled = []
         four_frames_buffer = []
 
+        # First pass will compress raw frames into 2x2 grids
         for entry in reversed(self.entries):
             age = now - entry.timestamp
 
@@ -95,18 +96,18 @@ class ConversationTimeline:
             if age > FOUR_FRAMES_COMPRESSION_CUTOFF:
                 four_frames_buffer.append(entry)
                 if len(four_frames_buffer) == 4:
-                    merged_entry = self._merge_four_frames(four_frames_buffer)
+                    merged_entry = self._merge_four_frames(list(reversed(four_frames_buffer)))
                     resampled.insert(0, merged_entry)
                     four_frames_buffer = []
             else:
                 resampled.insert(0, entry)
 
-        # Handle remaining frames in first pass
+        # Handle anything left in the buffer
         if len(four_frames_buffer) > 0:
-            merged_entry = self._merge_four_frames(four_frames_buffer)
+            merged_entry = self._merge_four_frames(list(reversed(four_frames_buffer)))
             resampled.insert(0, merged_entry)
 
-        # Second pass: compress 2x2 grids older than 60 seconds into 4x4 grids
+        # Second pass will compress 2x2 grids into 4x4 grids
         final_resampled = []
         sixteen_frames_buffer = []
 
@@ -123,15 +124,15 @@ class ConversationTimeline:
             if age > SIXTEEN_FRAMES_COMPRESSION_CUTOFF:
                 sixteen_frames_buffer.append(entry)
                 if len(sixteen_frames_buffer) == 4:
-                    merged_entry = self._merge_sixteen_frames(sixteen_frames_buffer)
+                    merged_entry = self._merge_sixteen_frames(list(reversed(sixteen_frames_buffer)))
                     final_resampled.insert(0, merged_entry)
                     sixteen_frames_buffer = []
             else:
                 final_resampled.insert(0, entry)
 
-        # Handle remaining frames in second pass
+        # Handle anything left in the buffer
         if len(sixteen_frames_buffer) > 0:
-            merged_entry = self._merge_sixteen_frames(sixteen_frames_buffer)
+            merged_entry = self._merge_sixteen_frames(list(reversed(sixteen_frames_buffer)))
             final_resampled.insert(0, merged_entry)
 
         self.entries = final_resampled
@@ -141,7 +142,7 @@ class ConversationTimeline:
         merged_image = self._merge_grid([frame.content for frame in frames], 4)
 
         # Calculate duration from first to last frame, plus duration of oldest frame
-        duration = (frames[-1].timestamp - frames[0].timestamp) + frames[-1].duration
+        duration = (frames[0].timestamp - frames[-1].timestamp) + frames[-1].duration
 
         return TimelineEntry(
             entry_type=EntryType.FOUR_CAMERA_FRAMES
@@ -153,14 +154,13 @@ class ConversationTimeline:
         )
 
     def _merge_sixteen_frames(self, frames: List[TimelineEntry]) -> TimelineEntry:
-        # Create a 4x4 grid from up to four 2x2 grids
         images_data = [
             img for frame in frames for img in self._unmerge_grid(frame.content, 4)
         ]
         merged_image = self._merge_grid(images_data, 16)
 
         # Calculate duration from first to last frame, plus duration of oldest frame
-        duration = (frames[-1].timestamp - frames[0].timestamp) + frames[-1].duration
+        duration = (frames[0].timestamp - frames[-1].timestamp) + frames[-1].duration
 
         return TimelineEntry(
             entry_type=EntryType.SIXTEEN_CAMERA_FRAMES
