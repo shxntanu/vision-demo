@@ -402,7 +402,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = VisionDemo/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Vision Demo";
+				INFOPLIST_KEY_CFBundleDisplayName = "LiveKit Vision";
 				INFOPLIST_KEY_NSCameraUsageDescription = "To see your beautiful face.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "To hear your beautiful voice.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
@@ -445,7 +445,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = VisionDemo/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "Vision Demo";
+				INFOPLIST_KEY_CFBundleDisplayName = "LiveKit Vision";
 				INFOPLIST_KEY_NSCameraUsageDescription = "To see your beautiful face.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "To hear your beautiful voice.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
