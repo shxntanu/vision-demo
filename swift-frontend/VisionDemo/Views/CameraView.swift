@@ -7,7 +7,8 @@ struct CameraView: View {
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             if let videoTrack = room.localParticipant.firstCameraVideoTrack {
-                SwiftUIVideoView(videoTrack)
+                SwiftUIVideoView(videoTrack,
+                                 renderMode: .sampleBuffer)
                     .clipShape(RoundedRectangle(cornerRadius: 16))
             } else {
                 RoundedRectangle(cornerRadius: 16)
