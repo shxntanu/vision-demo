@@ -130,23 +130,11 @@ class ConversationTimeline:
     def repack(self):
         now = time.time()
 
-        # First unpack any existing grids back into individual frames
-        unpacked = []
-        for entry in self.entries:
-            if entry.entry_type == EntryType.SIXTEEN_VIDEO_FRAMES:
-                # Unpack 4x4 grid back into individual frames
-                unpacked.extend(self._unpack_sixteen_frames(entry))
-            elif entry.entry_type == EntryType.FOUR_VIDEO_FRAMES:
-                # Unpack 2x2 grid back into individual frames
-                unpacked.extend(self._unpack_four_frames(entry))
-            else:
-                unpacked.append(entry)
-
         four_packed = []
         four_frames_buffer = []
 
         # First pass will pack raw frames into 2x2 grids (now processing oldest first)
-        for entry in unpacked:
+        for entry in self.entries:
             age = now - entry.end_timestamp
 
             if entry.entry_type != EntryType.VIDEO_FRAME:
@@ -240,45 +228,6 @@ class ConversationTimeline:
         frame_data = base64.b64encode(encoded_data).decode("utf-8")
         return f"data:image/jpeg;base64,{frame_data}"
 
-    def _unpack_four_frames(self, entry: TimelineEntry) -> List[TimelineEntry]:
-        image_urls = self._unpack_grid(entry.content, 4)
-
-        # Calculate timestamps that evenly distribute across the total duration (estimates)
-        frame_duration = entry.duration / len(image_urls)
-        start_time = entry.end_timestamp - entry.duration
-
-        entries = []
-        for i, image_url in enumerate(image_urls):
-            frame_end_timestamp = start_time + ((i + 1) * frame_duration)
-            entries.append(
-                TimelineEntry(
-                    entry_type=EntryType.VIDEO_FRAME,
-                    end_timestamp=frame_end_timestamp,
-                    content=image_url,
-                    duration=frame_duration,
-                )
-            )
-        return entries
-
-    def _unpack_sixteen_frames(self, entry: TimelineEntry) -> List[TimelineEntry]:
-        image_urls = self._unpack_grid(entry.content, 16)
-
-        frame_duration = entry.duration / len(image_urls)
-        start_time = entry.end_timestamp - entry.duration
-
-        entries = []
-        for i, image_url in enumerate(image_urls):
-            frame_end_timestamp = start_time + ((i + 1) * frame_duration)
-            entries.append(
-                TimelineEntry(
-                    entry_type=EntryType.VIDEO_FRAME,
-                    end_timestamp=frame_end_timestamp,
-                    content=image_url,
-                    duration=frame_duration,
-                )
-            )
-        return entries
-
     def _pack_four_frames(self, frames: List[TimelineEntry]) -> TimelineEntry:
         # Create a 2x2 grid from 4 frames
         packed_image = self._pack_grid([frame.content for frame in frames], 4)
@@ -364,14 +313,6 @@ class ConversationTimeline:
                 frames.append(f"data:image/jpeg;base64,{frame_data}")
 
         return frames
-
-    def _is_frame_empty(self, frame: Image) -> bool:
-        # Check center portion of frame (middle 60%) to control for edge artifacts
-        output_size = frame.size[0]
-        inset = int(output_size * 0.2)
-        center = frame.crop((inset, inset, output_size - inset, output_size - inset))
-        extrema = center.convert("L").getextrema()
-        return extrema[0] >= 245 and extrema[1] >= 245
 
     def _decode_image(self, data_url: str) -> Image:
         base64_data = data_url.split(",")[1]
