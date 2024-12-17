@@ -48,6 +48,18 @@ HYPHEN_SPEECH_RATE = 3.83  # hyphens per second
 JPEG_QUALITY = 50
 
 
+def _insert_entry_chronologically(entries: List[TimelineEntry], entry: TimelineEntry):
+    left, right = 0, len(entries)
+    while left < right:
+        mid = (left + right) // 2
+        if entries[mid].end_timestamp < entry.end_timestamp:
+            left = mid + 1
+        else:
+            right = mid
+
+    entries.insert(left, entry)
+
+
 class ConversationTimeline:
     def __init__(self):
         self.entries: List[TimelineEntry] = []
@@ -86,7 +98,7 @@ class ConversationTimeline:
                 content=sentence,
                 duration=sentence_duration,
             )
-            self._insert_entry_chronologically(entry)
+            _insert_entry_chronologically(self.entries, entry)
 
     def add_assistant_speech(self, text: str):
         ts = time.time()
@@ -100,7 +112,7 @@ class ConversationTimeline:
                 content=sentence,
                 duration=sentence_duration,
             )
-            self._insert_entry_chronologically(entry)
+            _insert_entry_chronologically(self.entries, entry)
 
     def add_video_frame(self, frame: rtc.VideoFrame):
         ts = time.time()
@@ -112,7 +124,7 @@ class ConversationTimeline:
         entry = TimelineEntry(
             entry_type=EntryType.VIDEO_FRAME, end_timestamp=ts, content=frame_ref
         )
-        self._insert_entry_chronologically(entry)
+        _insert_entry_chronologically(self.entries, entry)
         
     # Packs older frames into grids, to reduce token usage while maintaining visual context
     def repack(self):
@@ -133,58 +145,52 @@ class ConversationTimeline:
         four_packed = []
         four_frames_buffer = []
 
-        # First pass will pack raw frames into 2x2 grids
-        for entry in reversed(unpacked):
+        # First pass will pack raw frames into 2x2 grids (now processing oldest first)
+        for entry in unpacked:
             age = now - entry.end_timestamp
 
             if entry.entry_type != EntryType.VIDEO_FRAME:
-                four_packed.insert(0, entry)
+                four_packed.append(entry)
                 continue
 
             if age > FOUR_FRAME_PACKING_CUTOFF:
                 four_frames_buffer.append(entry)
                 if len(four_frames_buffer) == 4:
-                    packed_entry = self._pack_four_frames(
-                        list(reversed(four_frames_buffer))
-                    )
-                    four_packed.insert(0, packed_entry)
+                    packed_entry = self._pack_four_frames(four_frames_buffer)
+                    _insert_entry_chronologically(four_packed, packed_entry)
                     four_frames_buffer = []
             else:
-                four_packed.insert(0, entry)
+                four_packed.append(entry)
 
         # Handle anything left in the buffer
         if len(four_frames_buffer) > 0:
-            packed_entry = self._pack_four_frames(list(reversed(four_frames_buffer)))
-            four_packed.insert(0, packed_entry)
+            packed_entry = self._pack_four_frames(four_frames_buffer)
+            _insert_entry_chronologically(four_packed, packed_entry)
 
         # Second pass will pack 2x2 grids into 4x4 grids
         sixteen_packed = []
         sixteen_frames_buffer = []
 
-        for entry in reversed(four_packed):
+        for entry in four_packed:
             age = now - entry.end_timestamp
 
             if entry.entry_type != EntryType.FOUR_VIDEO_FRAMES:
-                sixteen_packed.insert(0, entry)
+                sixteen_packed.append(entry)
                 continue
 
             if age > SIXTEEN_FRAME_PACKING_CUTOFF:
                 sixteen_frames_buffer.append(entry)
                 if len(sixteen_frames_buffer) == 4:
-                    packed_entry = self._pack_sixteen_frames(
-                        list(reversed(sixteen_frames_buffer))
-                    )
-                    sixteen_packed.insert(0, packed_entry)
+                    packed_entry = self._pack_sixteen_frames(sixteen_frames_buffer)
+                    _insert_entry_chronologically(sixteen_packed, packed_entry)
                     sixteen_frames_buffer = []
             else:
-                sixteen_packed.insert(0, entry)
+                sixteen_packed.append(entry)
 
         # Handle anything left in the buffer
         if len(sixteen_frames_buffer) > 0:
-            packed_entry = self._pack_sixteen_frames(
-                list(reversed(sixteen_frames_buffer))
-            )
-            sixteen_packed.insert(0, packed_entry)
+            packed_entry = self._pack_sixteen_frames(sixteen_frames_buffer)
+            _insert_entry_chronologically(sixteen_packed, packed_entry)
 
         self.entries = sixteen_packed
 
@@ -203,16 +209,6 @@ class ConversationTimeline:
                     entry_count += 1
                     frame_count += 16
             print(f"Repack took {(end_time - now):.3f}s. {frame_count} frames packed into {entry_count} entries")
-
-    def _insert_entry_chronologically(self, entry: TimelineEntry):
-        left, right = 0, len(self.entries)
-        while left < right:
-            mid = (left + right) // 2
-            if self.entries[mid].end_timestamp < entry.end_timestamp:
-                left = mid + 1
-            else:
-                right = mid
-        self.entries.insert(left, entry)
 
     def _sample_frame(self) -> bool:
         timestamp = time.time()
