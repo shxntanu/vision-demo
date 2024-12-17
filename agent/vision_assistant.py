@@ -88,11 +88,7 @@ class VisionAssistant:
         participant: rtc.RemoteParticipant,
     ):
         if track.kind == rtc.TrackKind.KIND_VIDEO:
-            asyncio.create_task(
-                self._handle_video_track(
-                    track, publication.source == rtc.TrackSource.SOURCE_SCREENSHARE
-                )
-            )
+            asyncio.create_task(self._handle_video_track(track))
 
     def _on_user_started_speaking(self):
         self._conversation.is_speaking = True
@@ -155,17 +151,9 @@ class VisionAssistant:
                 chat_ctx.append(text=time_prefix + entry.content, role="user")
             elif entry.entry_type == EntryType.ASSISTANT_SPEECH:
                 chat_ctx.append(text=time_prefix + entry.content, role="assistant")
-            elif (
-                entry.entry_type == EntryType.CAMERA_FRAME
-                or entry.entry_type == EntryType.SCREENSHARE_FRAME
-            ):
-                type = (
-                    "Camera"
-                    if entry.entry_type == EntryType.CAMERA_FRAME
-                    else "Screenshare"
-                )
+            elif entry.entry_type == EntryType.VIDEO_FRAME:
                 chat_ctx.append(
-                    text=time_prefix + f"New Video Frame ({type}): ",
+                    text=time_prefix + "New Video Frame: ",
                     images=[
                         agents.llm.ChatImage(
                             image=entry.content, inference_detail="low"
@@ -173,18 +161,10 @@ class VisionAssistant:
                     ],
                     role="user",
                 )
-            elif (
-                entry.entry_type == EntryType.FOUR_CAMERA_FRAMES
-                or entry.entry_type == EntryType.FOUR_SCREENSHARE_FRAMES
-            ):
-                type = (
-                    "Camera"
-                    if entry.entry_type == EntryType.FOUR_CAMERA_FRAMES
-                    else "Screenshare"
-                )
+            elif entry.entry_type == EntryType.FOUR_VIDEO_FRAMES:
                 chat_ctx.append(
                     text=time_prefix
-                    + f"four video frames covering {entry.duration:.1f} seconds ({type}) (ascending left to right, top to bottom): ",
+                    + f"four video frames covering {entry.duration:.1f} seconds (ascending left to right, top to bottom): ",
                     images=[
                         agents.llm.ChatImage(
                             image=entry.content, inference_detail="low"
@@ -192,18 +172,10 @@ class VisionAssistant:
                     ],
                     role="user",
                 )
-            elif (
-                entry.entry_type == EntryType.SIXTEEN_CAMERA_FRAMES
-                or entry.entry_type == EntryType.SIXTEEN_SCREENSHARE_FRAMES
-            ):
-                type = (
-                    "Camera"
-                    if entry.entry_type == EntryType.SIXTEEN_CAMERA_FRAMES
-                    else "Screenshare"
-                )
+            elif entry.entry_type == EntryType.SIXTEEN_VIDEO_FRAMES:
                 chat_ctx.append(
                     text=time_prefix
-                    + f"sixteen video frames covering {entry.duration:.1f} seconds ({type}) (ascending left to right, top to bottom): ",
+                    + f"sixteen video frames covering {entry.duration:.1f} seconds (ascending left to right, top to bottom): ",
                     images=[
                         agents.llm.ChatImage(
                             image=entry.content, inference_detail="low"
@@ -244,12 +216,9 @@ class VisionAssistant:
 
         return process_stream()
 
-    async def _handle_video_track(self, track: rtc.Track, is_screenshare: bool):
+    async def _handle_video_track(self, track: rtc.Track):
         video_stream = rtc.VideoStream(track)
         async for event in video_stream:
-            if is_screenshare:
-                self._conversation.add_screenshare_frame(event.frame)
-            else:
-                self._conversation.add_camera_frame(event.frame)
+            self._conversation.add_video_frame(event.frame)
 
         await video_stream.aclose()

@@ -18,12 +18,9 @@ from PIL import Image
 
 class EntryType(Enum):
     USER_SPEECH = "user_speech"
-    CAMERA_FRAME = "camera_frame"
-    SCREENSHARE_FRAME = "screenshare_frame"
-    FOUR_CAMERA_FRAMES = "four_camera_frames"
-    FOUR_SCREENSHARE_FRAMES = "four_screenshare_frames"
-    SIXTEEN_CAMERA_FRAMES = "sixteen_camera_frames"
-    SIXTEEN_SCREENSHARE_FRAMES = "sixteen_screenshare_frames"
+    VIDEO_FRAME = "video_frame"
+    FOUR_VIDEO_FRAMES = "four_video_frames"
+    SIXTEEN_VIDEO_FRAMES = "sixteen_video_frames"
     ASSISTANT_SPEECH = "assistant_speech"
 
 
@@ -105,7 +102,7 @@ class ConversationTimeline:
             )
             self._insert_entry_chronologically(entry)
 
-    def add_camera_frame(self, frame: rtc.VideoFrame):
+    def add_video_frame(self, frame: rtc.VideoFrame):
         ts = time.time()
         if not self._sample_frame():
             return
@@ -113,22 +110,10 @@ class ConversationTimeline:
         frame_ref = self._encode_frame(frame)
 
         entry = TimelineEntry(
-            entry_type=EntryType.CAMERA_FRAME, end_timestamp=ts, content=frame_ref
+            entry_type=EntryType.VIDEO_FRAME, end_timestamp=ts, content=frame_ref
         )
         self._insert_entry_chronologically(entry)
-
-    def add_screenshare_frame(self, frame: rtc.VideoFrame):
-        ts = time.time()
-        if not self._sample_frame():
-            return
-
-        frame_ref = self._encode_frame(frame)
-
-        entry = TimelineEntry(
-            entry_type=EntryType.SCREENSHARE_FRAME, end_timestamp=ts, content=frame_ref
-        )
-        self._insert_entry_chronologically(entry)
-
+        
     # Packs older frames into grids, to reduce token usage while maintaining visual context
     def repack(self):
         now = time.time()
@@ -136,16 +121,10 @@ class ConversationTimeline:
         # First unpack any existing grids back into individual frames
         unpacked = []
         for entry in self.entries:
-            if entry.entry_type in [
-                EntryType.SIXTEEN_CAMERA_FRAMES,
-                EntryType.SIXTEEN_SCREENSHARE_FRAMES,
-            ]:
+            if entry.entry_type == EntryType.SIXTEEN_VIDEO_FRAMES:
                 # Unpack 4x4 grid back into individual frames
                 unpacked.extend(self._unpack_sixteen_frames(entry))
-            elif entry.entry_type in [
-                EntryType.FOUR_CAMERA_FRAMES,
-                EntryType.FOUR_SCREENSHARE_FRAMES,
-            ]:
+            elif entry.entry_type == EntryType.FOUR_VIDEO_FRAMES:
                 # Unpack 2x2 grid back into individual frames
                 unpacked.extend(self._unpack_four_frames(entry))
             else:
@@ -158,10 +137,7 @@ class ConversationTimeline:
         for entry in reversed(unpacked):
             age = now - entry.end_timestamp
 
-            if entry.entry_type not in [
-                EntryType.CAMERA_FRAME,
-                EntryType.SCREENSHARE_FRAME,
-            ]:
+            if entry.entry_type != EntryType.VIDEO_FRAME:
                 four_packed.insert(0, entry)
                 continue
 
@@ -188,10 +164,7 @@ class ConversationTimeline:
         for entry in reversed(four_packed):
             age = now - entry.end_timestamp
 
-            if entry.entry_type not in [
-                EntryType.FOUR_CAMERA_FRAMES,
-                EntryType.FOUR_SCREENSHARE_FRAMES,
-            ]:
+            if entry.entry_type != EntryType.FOUR_VIDEO_FRAMES:
                 sixteen_packed.insert(0, entry)
                 continue
 
@@ -220,22 +193,13 @@ class ConversationTimeline:
             entry_count = 0
             frame_count = 0
             for entry in self.entries:
-                if entry.entry_type in [
-                    EntryType.CAMERA_FRAME,
-                    EntryType.SCREENSHARE_FRAME,
-                ]:
+                if entry.entry_type == EntryType.VIDEO_FRAME:
                     entry_count += 1
                     frame_count += 1
-                elif entry.entry_type in [
-                    EntryType.FOUR_CAMERA_FRAMES,
-                    EntryType.FOUR_SCREENSHARE_FRAMES,
-                ]:
+                elif entry.entry_type == EntryType.FOUR_VIDEO_FRAMES:
                     entry_count += 1
                     frame_count += 4
-                elif entry.entry_type in [
-                    EntryType.SIXTEEN_CAMERA_FRAMES,
-                    EntryType.SIXTEEN_SCREENSHARE_FRAMES,
-                ]:
+                elif entry.entry_type == EntryType.SIXTEEN_VIDEO_FRAMES:
                     entry_count += 1
                     frame_count += 16
             print(f"Repack took {(end_time - now):.3f}s. {frame_count} frames packed into {entry_count} entries")
@@ -259,10 +223,7 @@ class ConversationTimeline:
             interval = 1 / NOT_SPEAKING_FRAME_RATE
 
         for entry in reversed(self.entries):
-            if entry.entry_type in [
-                EntryType.CAMERA_FRAME,
-                EntryType.SCREENSHARE_FRAME,
-            ]:
+            if entry.entry_type == EntryType.VIDEO_FRAME:
                 if timestamp - entry.end_timestamp <= interval:
                     return timestamp - entry.end_timestamp >= interval
                 break
@@ -297,9 +258,7 @@ class ConversationTimeline:
             frame_end_timestamp = start_time + ((i + 1) * frame_duration)
             entries.append(
                 TimelineEntry(
-                    entry_type=EntryType.CAMERA_FRAME
-                    if entry.entry_type == EntryType.FOUR_CAMERA_FRAMES
-                    else EntryType.SCREENSHARE_FRAME,
+                    entry_type=EntryType.VIDEO_FRAME,
                     end_timestamp=frame_end_timestamp,
                     content=image_url,
                     duration=frame_duration,
@@ -319,9 +278,7 @@ class ConversationTimeline:
             frame_end_timestamp = start_time + ((i + 1) * frame_duration)
             entries.append(
                 TimelineEntry(
-                    entry_type=EntryType.CAMERA_FRAME
-                    if entry.entry_type == EntryType.SIXTEEN_CAMERA_FRAMES
-                    else EntryType.SCREENSHARE_FRAME,
+                    entry_type=EntryType.VIDEO_FRAME,
                     end_timestamp=frame_end_timestamp,
                     content=image_url,
                     duration=frame_duration,
@@ -341,9 +298,7 @@ class ConversationTimeline:
         duration = end_timestamp - start_of_earliest
 
         return TimelineEntry(
-            entry_type=EntryType.FOUR_CAMERA_FRAMES
-            if frames[0].entry_type == EntryType.CAMERA_FRAME
-            else EntryType.FOUR_SCREENSHARE_FRAMES,
+            entry_type=EntryType.FOUR_VIDEO_FRAMES,
             end_timestamp=end_timestamp,
             content=packed_image,
             duration=duration,
@@ -363,9 +318,7 @@ class ConversationTimeline:
         duration = end_timestamp - start_of_earliest
 
         return TimelineEntry(
-            entry_type=EntryType.SIXTEEN_CAMERA_FRAMES
-            if frames[0].entry_type == EntryType.FOUR_CAMERA_FRAMES
-            else EntryType.SIXTEEN_SCREENSHARE_FRAMES,
+            entry_type=EntryType.SIXTEEN_VIDEO_FRAMES,
             end_timestamp=end_timestamp,
             content=packed_image,
             duration=duration,
