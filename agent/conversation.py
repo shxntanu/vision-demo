@@ -4,6 +4,7 @@ import time
 from dataclasses import dataclass
 from enum import Enum
 from typing import List, Literal, Tuple
+import os
 
 from livekit import rtc
 from livekit.agents.tokenize.basic import (
@@ -213,6 +214,31 @@ class ConversationTimeline:
             sixteen_packed.insert(0, packed_entry)
 
         self.entries = sixteen_packed
+
+        if os.getenv('DEBUG'):
+            end_time = time.time()
+            entry_count = 0
+            frame_count = 0
+            for entry in self.entries:
+                if entry.entry_type in [
+                    EntryType.CAMERA_FRAME,
+                    EntryType.SCREENSHARE_FRAME,
+                ]:
+                    entry_count += 1
+                    frame_count += 1
+                elif entry.entry_type in [
+                    EntryType.FOUR_CAMERA_FRAMES,
+                    EntryType.FOUR_SCREENSHARE_FRAMES,
+                ]:
+                    entry_count += 1
+                    frame_count += 4
+                elif entry.entry_type in [
+                    EntryType.SIXTEEN_CAMERA_FRAMES,
+                    EntryType.SIXTEEN_SCREENSHARE_FRAMES,
+                ]:
+                    entry_count += 1
+                    frame_count += 16
+            print(f"Repack took {(end_time - now):.3f}s. {frame_count} frames packed into {entry_count} entries")
 
     def _insert_entry_chronologically(self, entry: TimelineEntry):
         left, right = 0, len(self.entries)
