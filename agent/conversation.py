@@ -358,12 +358,10 @@ class ConversationTimeline:
                 bottom = top + output_size
 
                 frame = packed_img.crop((left, top, right, bottom))
-
-                if not self._is_frame_empty(frame):
-                    buffer = io.BytesIO()
-                    frame.save(buffer, format="JPEG", quality=JPEG_QUALITY)
-                    frame_data = base64.b64encode(buffer.getvalue()).decode("utf-8")
-                    frames.append(f"data:image/jpeg;base64,{frame_data}")
+                buffer = io.BytesIO()
+                frame.save(buffer, format="JPEG", quality=JPEG_QUALITY)
+                frame_data = base64.b64encode(buffer.getvalue()).decode("utf-8")
+                frames.append(f"data:image/jpeg;base64,{frame_data}")
 
         return frames
 
