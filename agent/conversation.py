@@ -249,7 +249,7 @@ class ConversationTimeline:
     def _unpack_four_frames(self, entry: TimelineEntry) -> List[TimelineEntry]:
         image_urls = self._unpack_grid(entry.content, 4)
 
-        # Calculate timestamps that evenly distribute across the total duration
+        # Calculate timestamps that evenly distribute across the total duration (estimates)
         frame_duration = entry.duration / len(image_urls)
         start_time = entry.end_timestamp - entry.duration
 
@@ -269,7 +269,6 @@ class ConversationTimeline:
     def _unpack_sixteen_frames(self, entry: TimelineEntry) -> List[TimelineEntry]:
         image_urls = self._unpack_grid(entry.content, 16)
 
-        # Use same timestamp logic as _unpack_four_frames
         frame_duration = entry.duration / len(image_urls)
         start_time = entry.end_timestamp - entry.duration
 
