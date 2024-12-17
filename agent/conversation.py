@@ -47,6 +47,8 @@ SIXTEEN_FRAME_PACKING_CUTOFF = 60.0
 
 HYPHEN_SPEECH_RATE = 3.83  # hyphens per second
 
+JPEG_QUALITY = 50
+
 
 class ConversationTimeline:
     def __init__(self):
@@ -246,6 +248,7 @@ class ConversationTimeline:
             frame,
             images.EncodeOptions(
                 format="JPEG",
+                quality=JPEG_QUALITY,
                 resize_options=images.ResizeOptions(
                     width=512,
                     height=512,
@@ -253,9 +256,8 @@ class ConversationTimeline:
                 ),
             ),
         )
-        return (
-            f"data:image/jpeg;base64,{base64.b64encode(encoded_data).decode('utf-8')}"
-        )
+        frame_data = base64.b64encode(encoded_data).decode("utf-8")
+        return f"data:image/jpeg;base64,{frame_data}"
 
     def _unpack_four_frames(self, entry: TimelineEntry) -> List[TimelineEntry]:
         image_urls = self._unpack_grid(entry.content, 4)
@@ -366,7 +368,7 @@ class ConversationTimeline:
             canvas.paste(frame_img, (x, y))
 
         buffer = io.BytesIO()
-        canvas.save(buffer, format="JPEG")
+        canvas.save(buffer, format="JPEG", quality=JPEG_QUALITY)
         image_data = base64.b64encode(buffer.getvalue()).decode("utf-8")
         return f"data:image/jpeg;base64,{image_data}"
 
@@ -387,7 +389,7 @@ class ConversationTimeline:
 
                 if not self._is_frame_empty(frame):
                     buffer = io.BytesIO()
-                    frame.save(buffer, format="JPEG")
+                    frame.save(buffer, format="JPEG", quality=JPEG_QUALITY)
                     frame_data = base64.b64encode(buffer.getvalue()).decode("utf-8")
                     frames.append(f"data:image/jpeg;base64,{frame_data}")
 

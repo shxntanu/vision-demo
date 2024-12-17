@@ -6,6 +6,7 @@ from typing import AsyncIterable
 
 import httpx
 from livekit import agents, rtc
+from livekit.agents import metrics
 from livekit.plugins import cartesia, deepgram, openai, silero
 from openai import AsyncClient as OpenAIAsyncClient
 
@@ -76,6 +77,7 @@ class VisionAssistant:
         self._agent.on("user_stopped_speaking", self._on_user_stopped_speaking)
         self._agent.on("agent_speech_committed", self._on_agent_speech_committed)
         self._agent.on("agent_speech_interrupted", self._on_agent_speech_interrupted)
+        self._agent.on("metrics_collected", self._on_metrics_collected)
 
         self._agent.start(room)
 
@@ -107,6 +109,9 @@ class VisionAssistant:
         self._conversation.add_assistant_speech(
             self._remove_timestamps(message.content)
         )
+
+    def _on_metrics_collected(self, mtrcs: metrics.AgentMetrics):
+        metrics.log_metrics(mtrcs)
 
     async def _on_before_llm(
         self,
