@@ -127,7 +127,7 @@ class ConversationTimeline:
         _insert_entry_chronologically(self.entries, entry)
         
     # Packs older frames into grids, to reduce token usage while maintaining visual context
-    def repack(self):
+    def pack_frames(self):
         now = time.time()
 
         four_packed = []
@@ -194,7 +194,7 @@ class ConversationTimeline:
                 elif entry.entry_type == EntryType.SIXTEEN_VIDEO_FRAMES:
                     entry_count += 1
                     frame_count += 16
-            print(f"Repack took {(end_time - now):.3f}s. {frame_count} frames packed into {entry_count} entries")
+            print(f"Packing took {(end_time - now):.3f}s. {frame_count} frames packed into {entry_count} entries")
 
     def _sample_frame(self) -> bool:
         timestamp = time.time()

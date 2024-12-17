@@ -141,7 +141,7 @@ class VisionAssistant:
             else time.time()
         )
 
-        self._conversation.repack()
+        self._conversation.pack_frames()
 
         for entry in self._conversation.entries:
             relative_time = round(entry.end_timestamp - first_entry_time, 1)
