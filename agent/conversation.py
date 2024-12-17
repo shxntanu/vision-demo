@@ -78,7 +78,7 @@ class ConversationTimeline:
     def add_user_speech(self, text: str):
         ts = time.time()
 
-        # Due to intteruption handling, we may need to remove existing trailing user speech entries
+        # Due to interruption handling, we may need to remove existing trailing user speech entries
         # as they will be duplicated in the new entry
         i = len(self.entries) - 1
         while i >= 0:
@@ -247,6 +247,7 @@ class ConversationTimeline:
         )
 
     def _pack_sixteen_frames(self, frames: List[TimelineEntry]) -> TimelineEntry:
+        # We need to unpack the individual 4x4 grids so we can reassemble them in left-to-right, top-to-bottom order
         images_data = [
             img for frame in frames for img in self._unpack_grid(frame.content, 4)
         ]
