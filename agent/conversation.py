@@ -162,10 +162,9 @@ class ConversationTimeline:
             else:
                 four_packed.append(entry)
 
-        # Handle anything left in the buffer
-        if len(four_frames_buffer) > 0:
-            packed_entry = self._pack_four_frames(four_frames_buffer)
-            _insert_entry_chronologically(four_packed, packed_entry)
+        # Dump anything left in the buffer without packing
+        for overflow_entry in four_frames_buffer:
+            _insert_entry_chronologically(four_packed, overflow_entry)
 
         # Second pass will pack 2x2 grids into 4x4 grids
         sixteen_packed = []
@@ -188,9 +187,8 @@ class ConversationTimeline:
                 sixteen_packed.append(entry)
 
         # Handle anything left in the buffer
-        if len(sixteen_frames_buffer) > 0:
-            packed_entry = self._pack_sixteen_frames(sixteen_frames_buffer)
-            _insert_entry_chronologically(sixteen_packed, packed_entry)
+        for overflow_entry in sixteen_frames_buffer:
+            _insert_entry_chronologically(sixteen_packed, overflow_entry)
 
         self.entries = sixteen_packed
 
