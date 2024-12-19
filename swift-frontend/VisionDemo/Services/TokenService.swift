@@ -36,10 +36,6 @@ class TokenService {
             throw URLError(.badServerResponse)
         }
 
-        if let body = String(data: data, encoding: .utf8) {
-            print("Response body: \(body)")
-        }
-
         return try JSONDecoder().decode(ConnectionDetails.self, from: data)
     }
 }

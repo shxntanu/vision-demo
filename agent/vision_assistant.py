@@ -6,6 +6,7 @@ from typing import AsyncIterable
 
 import httpx
 from livekit import agents, rtc
+from livekit.agents import metrics
 from livekit.plugins import cartesia, deepgram, openai, silero
 from openai import AsyncClient as OpenAIAsyncClient
 
@@ -76,6 +77,7 @@ class VisionAssistant:
         self._agent.on("user_stopped_speaking", self._on_user_stopped_speaking)
         self._agent.on("agent_speech_committed", self._on_agent_speech_committed)
         self._agent.on("agent_speech_interrupted", self._on_agent_speech_interrupted)
+        self._agent.on("metrics_collected", self._on_metrics_collected)
 
         self._agent.start(room)
 
@@ -86,11 +88,7 @@ class VisionAssistant:
         participant: rtc.RemoteParticipant,
     ):
         if track.kind == rtc.TrackKind.KIND_VIDEO:
-            asyncio.create_task(
-                self._handle_video_track(
-                    track, publication.source == rtc.TrackSource.SOURCE_SCREENSHARE
-                )
-            )
+            asyncio.create_task(self._handle_video_track(track))
 
     def _on_user_started_speaking(self):
         self._conversation.is_speaking = True
@@ -107,6 +105,9 @@ class VisionAssistant:
         self._conversation.add_assistant_speech(
             self._remove_timestamps(message.content)
         )
+
+    def _on_metrics_collected(self, mtrcs: metrics.AgentMetrics):
+        metrics.log_metrics(mtrcs)
 
     async def _on_before_llm(
         self,
@@ -140,7 +141,7 @@ class VisionAssistant:
             else time.time()
         )
 
-        self._conversation.repack()
+        self._conversation.pack_frames()
 
         for entry in self._conversation.entries:
             relative_time = round(entry.end_timestamp - first_entry_time, 1)
@@ -150,17 +151,9 @@ class VisionAssistant:
                 chat_ctx.append(text=time_prefix + entry.content, role="user")
             elif entry.entry_type == EntryType.ASSISTANT_SPEECH:
                 chat_ctx.append(text=time_prefix + entry.content, role="assistant")
-            elif (
-                entry.entry_type == EntryType.CAMERA_FRAME
-                or entry.entry_type == EntryType.SCREENSHARE_FRAME
-            ):
-                type = (
-                    "Camera"
-                    if entry.entry_type == EntryType.CAMERA_FRAME
-                    else "Screenshare"
-                )
+            elif entry.entry_type == EntryType.VIDEO_FRAME:
                 chat_ctx.append(
-                    text=time_prefix + f"New Video Frame ({type}): ",
+                    text=time_prefix + "New Video Frame: ",
                     images=[
                         agents.llm.ChatImage(
                             image=entry.content, inference_detail="low"
@@ -168,18 +161,10 @@ class VisionAssistant:
                     ],
                     role="user",
                 )
-            elif (
-                entry.entry_type == EntryType.FOUR_CAMERA_FRAMES
-                or entry.entry_type == EntryType.FOUR_SCREENSHARE_FRAMES
-            ):
-                type = (
-                    "Camera"
-                    if entry.entry_type == EntryType.FOUR_CAMERA_FRAMES
-                    else "Screenshare"
-                )
+            elif entry.entry_type == EntryType.FOUR_VIDEO_FRAMES:
                 chat_ctx.append(
                     text=time_prefix
-                    + f"four video frames covering {entry.duration:.1f} seconds ({type}) (ascending left to right, top to bottom): ",
+                    + f"four video frames covering {entry.duration:.1f} seconds (ascending left to right, top to bottom): ",
                     images=[
                         agents.llm.ChatImage(
                             image=entry.content, inference_detail="low"
@@ -187,18 +172,10 @@ class VisionAssistant:
                     ],
                     role="user",
                 )
-            elif (
-                entry.entry_type == EntryType.SIXTEEN_CAMERA_FRAMES
-                or entry.entry_type == EntryType.SIXTEEN_SCREENSHARE_FRAMES
-            ):
-                type = (
-                    "Camera"
-                    if entry.entry_type == EntryType.SIXTEEN_CAMERA_FRAMES
-                    else "Screenshare"
-                )
+            elif entry.entry_type == EntryType.SIXTEEN_VIDEO_FRAMES:
                 chat_ctx.append(
                     text=time_prefix
-                    + f"sixteen video frames covering {entry.duration:.1f} seconds ({type}) (ascending left to right, top to bottom): ",
+                    + f"sixteen video frames covering {entry.duration:.1f} seconds (ascending left to right, top to bottom): ",
                     images=[
                         agents.llm.ChatImage(
                             image=entry.content, inference_detail="low"
@@ -239,12 +216,9 @@ class VisionAssistant:
 
         return process_stream()
 
-    async def _handle_video_track(self, track: rtc.Track, is_screenshare: bool):
+    async def _handle_video_track(self, track: rtc.Track):
         video_stream = rtc.VideoStream(track)
         async for event in video_stream:
-            if is_screenshare:
-                self._conversation.add_screenshare_frame(event.frame)
-            else:
-                self._conversation.add_camera_frame(event.frame)
+            self._conversation.add_video_frame(event.frame)
 
         await video_stream.aclose()

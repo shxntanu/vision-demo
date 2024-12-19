@@ -4,6 +4,7 @@ import time
 from dataclasses import dataclass
 from enum import Enum
 from typing import List, Literal, Tuple
+import os
 
 from livekit import rtc
 from livekit.agents.tokenize.basic import (
@@ -17,12 +18,9 @@ from PIL import Image
 
 class EntryType(Enum):
     USER_SPEECH = "user_speech"
-    CAMERA_FRAME = "camera_frame"
-    SCREENSHARE_FRAME = "screenshare_frame"
-    FOUR_CAMERA_FRAMES = "four_camera_frames"
-    FOUR_SCREENSHARE_FRAMES = "four_screenshare_frames"
-    SIXTEEN_CAMERA_FRAMES = "sixteen_camera_frames"
-    SIXTEEN_SCREENSHARE_FRAMES = "sixteen_screenshare_frames"
+    VIDEO_FRAME = "video_frame"
+    FOUR_VIDEO_FRAMES = "four_video_frames"
+    SIXTEEN_VIDEO_FRAMES = "sixteen_video_frames"
     ASSISTANT_SPEECH = "assistant_speech"
 
 
@@ -40,12 +38,26 @@ class FrameRate:
     not_speaking: float
 
 
-SPEAKING_FRAME_RATE = 2
+SPEAKING_FRAME_RATE = 1.0
 NOT_SPEAKING_FRAME_RATE = 0.5
-FOUR_FRAME_PACKING_CUTOFF = 10.0
-SIXTEEN_FRAME_PACKING_CUTOFF = 60.0
+FOUR_FRAME_PACKING_CUTOFF = 8.0
+SIXTEEN_FRAME_PACKING_CUTOFF = 45.0
 
 HYPHEN_SPEECH_RATE = 3.83  # hyphens per second
+
+JPEG_QUALITY = 50
+
+
+def _insert_entry_chronologically(entries: List[TimelineEntry], entry: TimelineEntry):
+    left, right = 0, len(entries)
+    while left < right:
+        mid = (left + right) // 2
+        if entries[mid].end_timestamp < entry.end_timestamp:
+            left = mid + 1
+        else:
+            right = mid
+
+    entries.insert(left, entry)
 
 
 class ConversationTimeline:
@@ -66,7 +78,7 @@ class ConversationTimeline:
     def add_user_speech(self, text: str):
         ts = time.time()
 
-        # Due to intteruption handling, we may need to remove existing trailing user speech entries
+        # Due to interruption handling, we may need to remove existing trailing user speech entries
         # as they will be duplicated in the new entry
         i = len(self.entries) - 1
         while i >= 0:
@@ -86,7 +98,7 @@ class ConversationTimeline:
                 content=sentence,
                 duration=sentence_duration,
             )
-            self._insert_entry_chronologically(entry)
+            _insert_entry_chronologically(self.entries, entry)
 
     def add_assistant_speech(self, text: str):
         ts = time.time()
@@ -100,9 +112,9 @@ class ConversationTimeline:
                 content=sentence,
                 duration=sentence_duration,
             )
-            self._insert_entry_chronologically(entry)
+            _insert_entry_chronologically(self.entries, entry)
 
-    def add_camera_frame(self, frame: rtc.VideoFrame):
+    def add_video_frame(self, frame: rtc.VideoFrame):
         ts = time.time()
         if not self._sample_frame():
             return
@@ -110,117 +122,79 @@ class ConversationTimeline:
         frame_ref = self._encode_frame(frame)
 
         entry = TimelineEntry(
-            entry_type=EntryType.CAMERA_FRAME, end_timestamp=ts, content=frame_ref
+            entry_type=EntryType.VIDEO_FRAME, end_timestamp=ts, content=frame_ref
         )
-        self._insert_entry_chronologically(entry)
-
-    def add_screenshare_frame(self, frame: rtc.VideoFrame):
-        ts = time.time()
-        if not self._sample_frame():
-            return
-
-        frame_ref = self._encode_frame(frame)
-
-        entry = TimelineEntry(
-            entry_type=EntryType.SCREENSHARE_FRAME, end_timestamp=ts, content=frame_ref
-        )
-        self._insert_entry_chronologically(entry)
-
+        _insert_entry_chronologically(self.entries, entry)
+        
     # Packs older frames into grids, to reduce token usage while maintaining visual context
-    def repack(self):
+    def pack_frames(self):
         now = time.time()
-
-        # First unpack any existing grids back into individual frames
-        unpacked = []
-        for entry in self.entries:
-            if entry.entry_type in [
-                EntryType.SIXTEEN_CAMERA_FRAMES,
-                EntryType.SIXTEEN_SCREENSHARE_FRAMES,
-            ]:
-                # Unpack 4x4 grid back into individual frames
-                unpacked.extend(self._unpack_sixteen_frames(entry))
-            elif entry.entry_type in [
-                EntryType.FOUR_CAMERA_FRAMES,
-                EntryType.FOUR_SCREENSHARE_FRAMES,
-            ]:
-                # Unpack 2x2 grid back into individual frames
-                unpacked.extend(self._unpack_four_frames(entry))
-            else:
-                unpacked.append(entry)
 
         four_packed = []
         four_frames_buffer = []
 
-        # First pass will pack raw frames into 2x2 grids
-        for entry in reversed(unpacked):
+        # First pass will pack raw frames into 2x2 grids (now processing oldest first)
+        for entry in self.entries:
             age = now - entry.end_timestamp
 
-            if entry.entry_type not in [
-                EntryType.CAMERA_FRAME,
-                EntryType.SCREENSHARE_FRAME,
-            ]:
-                four_packed.insert(0, entry)
+            if entry.entry_type != EntryType.VIDEO_FRAME:
+                four_packed.append(entry)
                 continue
 
             if age > FOUR_FRAME_PACKING_CUTOFF:
                 four_frames_buffer.append(entry)
                 if len(four_frames_buffer) == 4:
-                    packed_entry = self._pack_four_frames(
-                        list(reversed(four_frames_buffer))
-                    )
-                    four_packed.insert(0, packed_entry)
+                    packed_entry = self._pack_four_frames(four_frames_buffer)
+                    _insert_entry_chronologically(four_packed, packed_entry)
                     four_frames_buffer = []
             else:
-                four_packed.insert(0, entry)
+                four_packed.append(entry)
 
-        # Handle anything left in the buffer
-        if len(four_frames_buffer) > 0:
-            packed_entry = self._pack_four_frames(list(reversed(four_frames_buffer)))
-            four_packed.insert(0, packed_entry)
+        # Dump anything left in the buffer without packing
+        for overflow_entry in four_frames_buffer:
+            _insert_entry_chronologically(four_packed, overflow_entry)
 
         # Second pass will pack 2x2 grids into 4x4 grids
         sixteen_packed = []
         sixteen_frames_buffer = []
 
-        for entry in reversed(four_packed):
+        for entry in four_packed:
             age = now - entry.end_timestamp
 
-            if entry.entry_type not in [
-                EntryType.FOUR_CAMERA_FRAMES,
-                EntryType.FOUR_SCREENSHARE_FRAMES,
-            ]:
-                sixteen_packed.insert(0, entry)
+            if entry.entry_type != EntryType.FOUR_VIDEO_FRAMES:
+                sixteen_packed.append(entry)
                 continue
 
             if age > SIXTEEN_FRAME_PACKING_CUTOFF:
                 sixteen_frames_buffer.append(entry)
                 if len(sixteen_frames_buffer) == 4:
-                    packed_entry = self._pack_sixteen_frames(
-                        list(reversed(sixteen_frames_buffer))
-                    )
-                    sixteen_packed.insert(0, packed_entry)
+                    packed_entry = self._pack_sixteen_frames(sixteen_frames_buffer)
+                    _insert_entry_chronologically(sixteen_packed, packed_entry)
                     sixteen_frames_buffer = []
             else:
-                sixteen_packed.insert(0, entry)
+                sixteen_packed.append(entry)
 
         # Handle anything left in the buffer
-        if len(sixteen_frames_buffer) > 0:
-            packed_entry = self._pack_sixteen_frames(
-                list(reversed(sixteen_frames_buffer))
-            )
-            sixteen_packed.insert(0, packed_entry)
+        for overflow_entry in sixteen_frames_buffer:
+            _insert_entry_chronologically(sixteen_packed, overflow_entry)
 
         self.entries = sixteen_packed
 
-    def _insert_entry_chronologically(self, entry: TimelineEntry):
-        left, right = 0, len(self.entries)
-        while left < right:
-            mid = (left + right) // 2
-            if self.entries[mid].end_timestamp < entry.end_timestamp:
-                left = mid + 1
-            else:
-                right = mid
-        self.entries.insert(left, entry)
+        if os.getenv('DEBUG'):
+            end_time = time.time()
+            entry_count = 0
+            frame_count = 0
+            for entry in self.entries:
+                if entry.entry_type == EntryType.VIDEO_FRAME:
+                    entry_count += 1
+                    frame_count += 1
+                elif entry.entry_type == EntryType.FOUR_VIDEO_FRAMES:
+                    entry_count += 1
+                    frame_count += 4
+                elif entry.entry_type == EntryType.SIXTEEN_VIDEO_FRAMES:
+                    entry_count += 1
+                    frame_count += 16
+            print(f"Packing took {(end_time - now):.3f}s. {frame_count} frames packed into {entry_count} entries")
 
     def _sample_frame(self) -> bool:
         timestamp = time.time()
@@ -231,10 +205,7 @@ class ConversationTimeline:
             interval = 1 / NOT_SPEAKING_FRAME_RATE
 
         for entry in reversed(self.entries):
-            if entry.entry_type in [
-                EntryType.CAMERA_FRAME,
-                EntryType.SCREENSHARE_FRAME,
-            ]:
+            if entry.entry_type == EntryType.VIDEO_FRAME:
                 if timestamp - entry.end_timestamp <= interval:
                     return timestamp - entry.end_timestamp >= interval
                 break
@@ -246,6 +217,7 @@ class ConversationTimeline:
             frame,
             images.EncodeOptions(
                 format="JPEG",
+                quality=JPEG_QUALITY,
                 resize_options=images.ResizeOptions(
                     width=512,
                     height=512,
@@ -253,53 +225,8 @@ class ConversationTimeline:
                 ),
             ),
         )
-        return (
-            f"data:image/jpeg;base64,{base64.b64encode(encoded_data).decode('utf-8')}"
-        )
-
-    def _unpack_four_frames(self, entry: TimelineEntry) -> List[TimelineEntry]:
-        image_urls = self._unpack_grid(entry.content, 4)
-
-        # Calculate timestamps that evenly distribute across the total duration
-        frame_duration = entry.duration / len(image_urls)
-        start_time = entry.end_timestamp - entry.duration
-
-        entries = []
-        for i, image_url in enumerate(image_urls):
-            frame_end_timestamp = start_time + ((i + 1) * frame_duration)
-            entries.append(
-                TimelineEntry(
-                    entry_type=EntryType.CAMERA_FRAME
-                    if entry.entry_type == EntryType.FOUR_CAMERA_FRAMES
-                    else EntryType.SCREENSHARE_FRAME,
-                    end_timestamp=frame_end_timestamp,
-                    content=image_url,
-                    duration=frame_duration,
-                )
-            )
-        return entries
-
-    def _unpack_sixteen_frames(self, entry: TimelineEntry) -> List[TimelineEntry]:
-        image_urls = self._unpack_grid(entry.content, 16)
-
-        # Use same timestamp logic as _unpack_four_frames
-        frame_duration = entry.duration / len(image_urls)
-        start_time = entry.end_timestamp - entry.duration
-
-        entries = []
-        for i, image_url in enumerate(image_urls):
-            frame_end_timestamp = start_time + ((i + 1) * frame_duration)
-            entries.append(
-                TimelineEntry(
-                    entry_type=EntryType.CAMERA_FRAME
-                    if entry.entry_type == EntryType.SIXTEEN_CAMERA_FRAMES
-                    else EntryType.SCREENSHARE_FRAME,
-                    end_timestamp=frame_end_timestamp,
-                    content=image_url,
-                    duration=frame_duration,
-                )
-            )
-        return entries
+        frame_data = base64.b64encode(encoded_data).decode("utf-8")
+        return f"data:image/jpeg;base64,{frame_data}"
 
     def _pack_four_frames(self, frames: List[TimelineEntry]) -> TimelineEntry:
         # Create a 2x2 grid from 4 frames
@@ -313,15 +240,14 @@ class ConversationTimeline:
         duration = end_timestamp - start_of_earliest
 
         return TimelineEntry(
-            entry_type=EntryType.FOUR_CAMERA_FRAMES
-            if frames[0].entry_type == EntryType.CAMERA_FRAME
-            else EntryType.FOUR_SCREENSHARE_FRAMES,
+            entry_type=EntryType.FOUR_VIDEO_FRAMES,
             end_timestamp=end_timestamp,
             content=packed_image,
             duration=duration,
         )
 
     def _pack_sixteen_frames(self, frames: List[TimelineEntry]) -> TimelineEntry:
+        # We need to unpack the individual 4x4 grids so we can reassemble them in left-to-right, top-to-bottom order
         images_data = [
             img for frame in frames for img in self._unpack_grid(frame.content, 4)
         ]
@@ -335,9 +261,7 @@ class ConversationTimeline:
         duration = end_timestamp - start_of_earliest
 
         return TimelineEntry(
-            entry_type=EntryType.SIXTEEN_CAMERA_FRAMES
-            if frames[0].entry_type == EntryType.FOUR_CAMERA_FRAMES
-            else EntryType.SIXTEEN_SCREENSHARE_FRAMES,
+            entry_type=EntryType.SIXTEEN_VIDEO_FRAMES,
             end_timestamp=end_timestamp,
             content=packed_image,
             duration=duration,
@@ -366,7 +290,7 @@ class ConversationTimeline:
             canvas.paste(frame_img, (x, y))
 
         buffer = io.BytesIO()
-        canvas.save(buffer, format="JPEG")
+        canvas.save(buffer, format="JPEG", quality=JPEG_QUALITY)
         image_data = base64.b64encode(buffer.getvalue()).decode("utf-8")
         return f"data:image/jpeg;base64,{image_data}"
 
@@ -384,22 +308,12 @@ class ConversationTimeline:
                 bottom = top + output_size
 
                 frame = packed_img.crop((left, top, right, bottom))
-
-                if not self._is_frame_empty(frame):
-                    buffer = io.BytesIO()
-                    frame.save(buffer, format="JPEG")
-                    frame_data = base64.b64encode(buffer.getvalue()).decode("utf-8")
-                    frames.append(f"data:image/jpeg;base64,{frame_data}")
+                buffer = io.BytesIO()
+                frame.save(buffer, format="JPEG", quality=JPEG_QUALITY)
+                frame_data = base64.b64encode(buffer.getvalue()).decode("utf-8")
+                frames.append(f"data:image/jpeg;base64,{frame_data}")
 
         return frames
-
-    def _is_frame_empty(self, frame: Image) -> bool:
-        # Check center portion of frame (middle 60%) to control for edge artifacts
-        output_size = frame.size[0]
-        inset = int(output_size * 0.2)
-        center = frame.crop((inset, inset, output_size - inset, output_size - inset))
-        extrema = center.convert("L").getextrema()
-        return extrema[0] >= 245 and extrema[1] >= 245
 
     def _decode_image(self, data_url: str) -> Image:
         base64_data = data_url.split(",")[1]
