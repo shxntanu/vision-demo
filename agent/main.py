@@ -15,6 +15,8 @@ from google.genai.types import (
     Blob,
     LiveClientRealtimeInput,
 )
+from livekit.agents.utils import images
+import base64
 
 load_dotenv()
 
@@ -35,16 +37,17 @@ async def entrypoint(ctx: JobContext):
     #     )
     # )
 
-    await ctx.connect(auto_subscribe=AutoSubscribe.AUDIO_ONLY)
+    await ctx.connect(auto_subscribe=AutoSubscribe.SUBSCRIBE_ALL)
     participant = await ctx.wait_for_participant()
     chat_ctx = llm.ChatContext()
+    model = google.beta.realtime.RealtimeModel(
+        voice="Puck",
+        temperature=0.8,
+        instructions="You are a helpful assistant that can see, hear, and speak.",
+    )   
     # await agent.start(room=ctx.room)
     agent = multimodal.MultimodalAgent(
-        model=google.beta.realtime.RealtimeModel(
-            voice="Puck",
-            temperature=0.8,
-            instructions="You are a helpful assistant that can see, hear, and speak.",
-        ),
+        model=model,            
         # fnc_ctx=fnc_ctx,
         chat_ctx=chat_ctx,
     )
@@ -52,14 +55,50 @@ async def entrypoint(ctx: JobContext):
     
     # Add video track handling
     async def handle_video_track(track: Track):
+        logger.info("Handling video track")
         video_stream = VideoStream(track)
+        last_frame_time = 0  # Track the last time we processed a frame
+        frame_counter = 0  # Add counter for unique filenames
+        
         async for event in video_stream:
+            current_time = asyncio.get_event_loop().time()
+            
+            # Skip if less than 1 second has passed since last frame
+            if current_time - last_frame_time < 1.0:
+                continue
+                
+            last_frame_time = current_time
             frame = event.frame
-            realtime_input = LiveClientRealtimeInput(
-                media_chunks=[Blob(data=frame.data.tobytes(), mime_type="image/raw")],
+            
+            # Encode frame as JPEG
+            encoded_data = images.encode(
+                frame,
+                images.EncodeOptions(
+                    format="JPEG",
+                    quality=50,
+                    resize_options=images.ResizeOptions(
+                        width=1024,
+                        height=1024,
+                        strategy="scale_aspect_fit",
+                    ),
+                ),
             )
+            
+            frame_counter += 1
+            
+            # Base64 encode the JPEG data
+            # base64_data = base64.b64encode(encoded_data).decode()
+            
+            realtime_input = LiveClientRealtimeInput(
+                media_chunks=[Blob(data=encoded_data, mime_type="image/jpeg")],
+            )
+            
             # Push to first session's queue
-            agent.model.sessions[0]._queue_msg(realtime_input)
+            try:
+                model.sessions[0]._queue_msg(realtime_input)
+                logger.info(f"Queued frame {frame_counter}")
+            except Exception as e:
+                logger.error(f"Error queuing frame {frame_counter}: {e}")
         await video_stream.aclose()
 
     # Subscribe to video tracks
@@ -67,7 +106,7 @@ async def entrypoint(ctx: JobContext):
         asyncio.create_task(handle_video_track(track)) if track.kind == TrackKind.KIND_VIDEO else None
     )
     
-    agent.generate_reply()
+    # agent.generate_reply()
     
     
 
