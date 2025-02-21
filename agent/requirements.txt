@@ -1,5 +1,6 @@
 -e ../../../livekit/agents/livekit-agents
--e ../../../livekit/agents/livekit-plugins/livekit-plugins-openai[realtime]
+# -e ../../../livekit/agents/livekit-plugins/livekit-plugins-openai[realtime]
+-e ../../../livekit/agents/livekit-plugins/livekit-plugins-google
 python-dotenv
 livekit
 asyncio
