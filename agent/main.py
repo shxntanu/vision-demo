@@ -1,10 +1,12 @@
 import logging
+
 from dotenv import load_dotenv
 from livekit.agents import (
     JobContext,
     WorkerOptions,
     cli,
 )
+
 from vision_assistant import VisionAssistant
 
 load_dotenv()
