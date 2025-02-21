@@ -20,7 +20,7 @@ logger = logging.getLogger("vision-assistant")
 
 SPEAKING_FRAME_RATE = 1.0  # frames per second when speaking
 NOT_SPEAKING_FRAME_RATE = 0.5  # frames per second when not speaking
-JPEG_QUALITY = 50
+JPEG_QUALITY = 80
 
 _SYSTEM_PROMPT = """
 You are a helpful voice and video assistant. Your user is interacting with you via a smartphone app and may speak by using their microphone.
