@@ -7,3 +7,4 @@ livekit-plugins-google
 python-dotenv
 livekit
 asyncio
+google-genai

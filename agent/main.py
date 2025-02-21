@@ -1,5 +1,5 @@
 import logging
-
+import asyncio
 from dotenv import load_dotenv
 from livekit.agents import (
     AutoSubscribe,
@@ -10,6 +10,11 @@ from livekit.agents import (
 )
 from livekit.agents import multimodal
 from livekit.plugins import google
+from livekit.rtc import Track, TrackKind, VideoStream
+from google.genai.types import (
+    Blob,
+    LiveClientRealtimeInput,
+)
 
 load_dotenv()
 
@@ -44,7 +49,27 @@ async def entrypoint(ctx: JobContext):
         chat_ctx=chat_ctx,
     )
     agent.start(ctx.room, participant)
+    
+    # Add video track handling
+    async def handle_video_track(track: Track):
+        video_stream = VideoStream(track)
+        async for event in video_stream:
+            frame = event.frame
+            realtime_input = LiveClientRealtimeInput(
+                media_chunks=[Blob(data=frame.data.tobytes(), mime_type="image/raw")],
+            )
+            # Push to first session's queue
+            agent.model.sessions[0]._queue_msg(realtime_input)
+        await video_stream.aclose()
+
+    # Subscribe to video tracks
+    ctx.room.on("track_subscribed", lambda track, pub, participant: 
+        asyncio.create_task(handle_video_track(track)) if track.kind == TrackKind.KIND_VIDEO else None
+    )
+    
     agent.generate_reply()
+    
+    
 
 if __name__ == "__main__":
     cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint))
