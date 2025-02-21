@@ -1,7 +1,5 @@
-livekit-agents=../../livekit/agents
-livekit-plugins-openai=../../livekit/agents/plugins/livekit-plugins-openai
+-e ../../../livekit/agents/livekit-agents
+-e ../../../livekit/agents/livekit-plugins/livekit-plugins-openai[realtime]
 python-dotenv
 livekit
 asyncio
-openai
-httpx
