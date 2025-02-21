@@ -1,8 +1,5 @@
-livekit-agents
-livekit-plugins-openai
-livekit-plugins-silero
-livekit-plugins-deepgram
-livekit-plugins-cartesia
+livekit-agents=../../livekit/agents
+livekit-plugins-openai=../../livekit/agents/plugins/livekit-plugins-openai
 python-dotenv
 livekit
 asyncio
