@@ -4,3 +4,4 @@ python-dotenv
 livekit
 asyncio
 google-genai
+google-ai-generativelanguage
