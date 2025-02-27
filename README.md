@@ -1,6 +1,6 @@
 # LiveKit Vision Demo
 
-This LiveKit example project demonstrates how to build a sophisticated AI agent that can process realtime video feed, similar to the ChatGPT advanced voice with video feature.
+This LiveKit example demonstrates an AI assistant that can process a realtime video feed while speaking with a user.
 
 The project contains a native iOS frontend, built on LiveKit's [Swift SDK](https://github.com/livekit/client-sdk-swift), and a backend agent, built on LiveKit's [Python Agents framework](https://github.com/livekit/agents) and the Gemini Multimodal Live API.
 
@@ -35,7 +35,7 @@ This project is meant to be a starting point for your own project, and is easy t
 ### Prerequisites
 
 - [LiveKit Cloud](https://cloud.livekit.io) project
-- [Google/Gemini API Key](https://console.cloud.google.com/apis/library/generativelanguage.googleapis.com?project=livekittest)
+- [Google Gemini API Key](https://console.cloud.google.com/apis/library/generativelanguage.googleapis.com?project=livekittest)
 - Python 3
 
 ### Setup
