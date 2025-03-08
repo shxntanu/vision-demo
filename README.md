@@ -70,7 +70,7 @@ This project includes a polished sample iOS app that you can build yourself.
 - Xcode 16
 - Device with iOS 17+ (simulator is not supported)
 - [LiveKit Cloud](https://cloud.livekit.io) project
-- A [Sandbox](https://docs.livekit.io/cloud/sandbox/) token server
+- A [Sandbox](https://docs.livekit.io/cloud/sandbox/) [token server](https://cloud.livekit.io/projects/p_/sandbox/templates/token-server)
 
 ### Setup
 
@@ -83,4 +83,4 @@ This project includes a polished sample iOS app that you can build yourself.
 
 # Self-Hosted Options
 
-This project is built with the LiveKit Cloud [Sandbox](https://docs.livekit.io/cloud/sandbox/) to make token generation easy. If you want to self-host or run a local LiveKit instance, you'll need to modify `swift-frontend/VisionDemo/Services/TokenService.swift` file to fetch your token from your own server.
+This project is built with the LiveKit Cloud [Sandbox token server](https://cloud.livekit.io/projects/p_/sandbox/templates/token-server) to make token generation easy. If you want to self-host or run a local LiveKit instance, you'll need to modify `swift-frontend/VisionDemo/Services/TokenService.swift` file to fetch your token from your own server.
