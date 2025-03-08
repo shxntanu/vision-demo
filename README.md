@@ -22,7 +22,7 @@ The assistant can observe and interact with you seamlessly, whether you're activ
 
 # Agent Architecture
 
-The backend agent is built on the [MultimodalAgent](https://docs.livekit.io/agents/voice-agent/voice-pipeline/) class hooked up to the Gemini Multimodal Live API.  It does currently use a private method to add live video input not curently supported in MultimodalAgent.
+The backend agent is built on the [MultimodalAgent](https://docs.livekit.io/agents/voice-agent/multimodal/) class hooked up to the Gemini Multimodal Live API.
 
 Video frames are sampled at 2 frames per second while the user speaks, and 0.5 frames per second otherwise. Images are sent as JPEG at 1024x1024 max size.
 
