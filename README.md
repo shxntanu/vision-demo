@@ -1,8 +1,8 @@
 # LiveKit Vision Demo
 
-This LiveKit example demonstrates an AI assistant that can process a realtime video feed while speaking with a user.
+This LiveKit sample app shows a voice AI assistant with realtime audio and video input.
 
-The project contains a native iOS frontend, built on LiveKit's [Swift SDK](https://github.com/livekit/client-sdk-swift), and a backend agent, built on LiveKit's [Python Agents framework](https://github.com/livekit/agents) and the Gemini Multimodal Live API.
+It contains a native iOS frontend, built on LiveKit's [Swift SDK](https://github.com/livekit/client-sdk-swift), and a backend agent, built on LiveKit's [Python Agents framework](https://github.com/livekit/agents) and the [Gemini Live API](https://ai.google.dev/gemini-api/docs/live).
 
 <img src="screenshot.jpg" height="512">
 
@@ -22,9 +22,9 @@ The assistant can observe and interact with you seamlessly, whether you're activ
 
 # Agent Architecture
 
-The backend agent is built on the [MultimodalAgent](https://docs.livekit.io/agents/voice-agent/multimodal/) class hooked up to the Gemini Multimodal Live API.
+The backend agent is built on the [MultimodalAgent](https://docs.livekit.io/agents/voice-agent/multimodal/) class hooked up to the Gemini Live API.
 
-Video frames are sampled at 2 frames per second while the user speaks, and 0.5 frames per second otherwise. Images are sent as JPEG at 1024x1024 max size.
+Video frames are sampled at 1 frame per second while the user speaks, and 0.5 frames per second otherwise. Images are sent as JPEG at 1024x1024 max size.
 
 # Running Locally
 
@@ -35,7 +35,7 @@ This project is meant to be a starting point for your own project, and is easy t
 ### Prerequisites
 
 - [LiveKit Cloud](https://cloud.livekit.io) project
-- [Google Gemini API Key](https://console.cloud.google.com/apis/library/generativelanguage.googleapis.com?project=livekittest)
+- [Google Gemini API Key](https://console.cloud.google.com/apis/library/generativelanguage.googleapis.com)
 - Python 3
 
 ### Setup
@@ -63,7 +63,7 @@ This project is fully compatible with LiveKit's [Agents Playground](https://agen
 
 ## Running the iOS App
 
-This project includes a polished sample iOS app that you can build yourself.
+This project includes a sample iOS app that you can build yourself.
 
 ### Prerequisites
 
@@ -83,4 +83,4 @@ This project includes a polished sample iOS app that you can build yourself.
 
 # Self-Hosted Options
 
-This project is built with the LiveKit Cloud [Sandbox token server](https://cloud.livekit.io/projects/p_/sandbox/templates/token-server) to make token generation easy. If you want to self-host or run a local LiveKit instance, you'll need to modify `swift-frontend/VisionDemo/Services/TokenService.swift` file to fetch your token from your own server.
+This project is built with the LiveKit Cloud [Sandbox token server](https://cloud.livekit.io/projects/p_/sandbox/templates/token-server) to make token generation easy. If you want to self-host or run a local LiveKit instance, you'll need to modify `swift-frontend/VisionDemo/Services/TokenService.swift` file to fetch your token from your own server and remove the `noise-cancellation` plugin from the agent ([enhanced noise cancellation](https://docs.livekit.io/cloud/noise-cancellation/) is a LiveKit Cloud feature).
