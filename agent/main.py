@@ -13,7 +13,7 @@ from livekit.agents import (
     get_job_context,
 )
 from livekit.agents.llm import ImageContent
-from livekit.plugins import google, noise_cancellation
+from livekit.plugins import google
 
 logger = logging.getLogger("vision-assistant")
 
@@ -39,13 +39,13 @@ You are a helpful voice  assistant.""",
             )
             self._tasks.append(task)
             task.add_done_callback(lambda t: self._tasks.remove(t))
-            
+
         get_job_context().room.register_byte_stream_handler("test", _image_received_handler)
 
         self.session.generate_reply(
             instructions="Briefly greet the user and offer your assistance."
         )
-    
+
     async def _image_received(self, reader, participant_identity):
         logger.info("Received image from %s: '%s'", participant_identity, reader.info.name)
         try:
@@ -70,14 +70,14 @@ You are a helpful voice  assistant.""",
 
 async def entrypoint(ctx: JobContext):
     await ctx.connect()
-    
+
     session = AgentSession()
     await session.start(
         agent=VisionAssistant(),
         room=ctx.room,
         room_input_options=RoomInputOptions(
             video_enabled=True,
-            noise_cancellation=noise_cancellation.BVC(),
+            # noise_cancellation=noise_cancellation.BVC(),
         ),
     )
 

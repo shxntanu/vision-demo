@@ -32,8 +32,8 @@ final class TokenService: ObservableObject, Sendable {
         return try await fetchConnectionDetailsFromSandbox(roomName: roomName, participantName: participantName)
     }
 
-    private let hardcodedServerUrl: String? = nil
-    private let hardcodedToken: String? = nil
+    private let hardcodedServerUrl: String? = "https://28a85b0828a3.ngrok-free.app"
+    private let hardcodedToken: String? = "eyJhbGciOiJIUzI1NiJ9.eyJ2aWRlbyI6eyJyb29tSm9pbiI6dHJ1ZSwicm9vbSI6InF1aWNrc3RhcnQtcm9vbSJ9LCJpc3MiOiJkZXZrZXkiLCJleHAiOjE3NTMzNzgzMTgsIm5iZiI6MCwic3ViIjoicXVpY2tzdGFydC11c2VybmFtZSJ9.kI5WSYul5DkX8UYN4KrD11hs4GyoqxsKbe8W3_X4Mfo"
 
     private let sandboxId: String? = {
         if let value = Bundle.main.object(forInfoDictionaryKey: "LiveKitSandboxId") as? String {
@@ -43,7 +43,7 @@ final class TokenService: ObservableObject, Sendable {
         return nil
     }()
 
-    private let sandboxUrl: String = "https://cloud-api.livekit.io/api/sandbox/connection-details"
+    private let sandboxUrl: String = "https://2097a62fc9e7.ngrok-free.app/getToken"
     private func fetchConnectionDetailsFromSandbox(roomName: String, participantName: String) async throws -> ConnectionDetails? {
         guard let sandboxId else {
             return nil
@@ -56,7 +56,7 @@ final class TokenService: ObservableObject, Sendable {
         ]
 
         var request = URLRequest(url: urlComponents.url!)
-        request.httpMethod = "POST"
+        request.httpMethod = "GET"
         request.addValue(sandboxId, forHTTPHeaderField: "X-Sandbox-ID")
 
         let (data, response) = try await URLSession.shared.data(for: request)
